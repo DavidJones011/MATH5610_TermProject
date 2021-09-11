@@ -2,6 +2,7 @@ import sys
 import math
 import os
 import re
+import decimal
 
 from enum import Enum
 class GeoCoordinate(Enum) :
@@ -14,28 +15,9 @@ class Axis(Enum) :
     Y = 1
     Z = 2
 
-SPEED_OF_LIGHT = float(2.997924580000000000E+08)
-EARTH_RADIUS = float(6.367444500000000000E+06)
-SIDEREAL_DAY_SEC = float(8.616408999999999651E+04)
-PI = float(3.141592653589793116E+00)
 
 def main() :
-    # open the data file to retrieve info
-    data_file = open(os.path.join(sys.path[0], 'data.dat'), "r")
-    for line in data_file.readlines() :
-        if line == '':
-            break
-        
-        tokens = re.split('\s|,', line)
-
-        
-
-        if(len(tokens) == 0) :
-            break
-
-        
-        
-    data_file.close()
+    pi, s, c, r = getData()
 
     for line in sys.stdin :
         if line == '':
@@ -62,14 +44,40 @@ def main() :
         #lon_rad = degreeToRad(lambda_d, lambda_m, lambda_s, ew_value, GeoCoordinate.LONGITUDE)
         #x_v = getCartesianCoords(EARTH_RADIUS + altitude, lon_rad, lat_rad)
 
-    newvector = rotateVectorAroundAxis([5,0,0], math.pi/2.0, Axis.Y)
-    newvector = normalize(newvector)
+    #newvector = rotateVectorAroundAxis([5,0,0], math.pi/2.0, Axis.Y)
+    #newvector = normalize(newvector)
 
     # writes the info into a file
-    output_file = open(os.path.join(sys.path[0], 'satellite.log'), "w")
-    output_file.write("<{},{},{}>\n".format(newvector[0], newvector[1], newvector[2]))
-    output_file.close()
+    #output_file = open(os.path.join(sys.path[0], 'satellite.log'), "w")
+    #output_file.write("<{},{},{}>\n".format(newvector[0], newvector[1], newvector[2]))
+    #output_file.close()
     pass
+
+# grab data from data.dat in local folder
+def getData() :
+
+    data_file = open(os.path.join(sys.path[0], 'data.dat'), "r")
+    for line in data_file.readlines() :
+
+        if line == '':
+            break
+
+        tokens = re.split('\s|,', line)
+
+        if(len(tokens) == 0) :
+            break
+
+        if(tokens[14] == 'pi') :
+            pi = decimal.Decimal(tokens[2])
+        elif(tokens[14] == 's') :
+            s = decimal.Decimal(tokens[2])
+        elif(tokens[14] == 'c') :
+            c = decimal.Decimal(tokens[2])
+        elif(tokens[14] == 'R') :
+            r = decimal.Decimal(tokens[2])
+
+    data_file.close()
+    return pi, s, c, r
 
 def degreeToRad(angle, angle_minute, angle_second, dir_value, geo_coordinate) :
     absolute_angle = angle + (angle_minute / 60.0) + (angle_second / 3600.0)
@@ -124,20 +132,7 @@ def magnitude(u):
 def dotProduct(u, v) :
     return (u[0] * v[0]) + (u[1] * v[1]) + (u[2] * v[2])
 
-def rotateVectorAroundAxis(u, angle, axis) :
-    v = u
-    if axis == Axis.X :
-        v = [u[0] 
-            ,u[1] * math.cos(angle) - u[2] * math.sin(angle)
-            ,u[1] * math.sin(angle) - u[2] * math.cos(angle)]
-    if axis == Axis.Y :
-        v = [u[0] * math.cos(angle) + u[2] * math.cos(angle)
-            ,u[1]
-            ,-u[0] * math.sin(angle) + u[2] * math.cos(angle)]
-    if axis == Axis.Z :
-        v = [u[0] * math.cos(angle) - u[1] * math.sin(angle)
-            ,u[0] * math.sin(angle) + u[1] * math.cos(angle)
-            ,u[2]]
-    return v
-
+#rotation in xyz order
+def rotateVectorAroundAxis(vec, roll, pitch, yaw) :
+    pass
 main()
