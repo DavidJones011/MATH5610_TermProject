@@ -44,6 +44,19 @@ def main() :
         longitude = degreeToRad(lambda_d, lambda_m, lambda_s, ew_value, GeoCoordinate.LONGITUDE)
         x_v = sphericalToCartesian(r + altitude, longitude, latitude)
 
+        # grab the satellites that are considered above the horizon plane
+        sat_whitelist = list()
+        for i in range(0,24) :
+            x_s = getSatelliteCartesian(satellites, i, t_v)
+            dot = dotProduct(normalize(x_v), normalize(x_s, -x_v))
+            if(dot < 0) :
+                continue
+            sat_whitelist.append(i)
+
+        for i in sat_whitelist :
+            #
+            # project satellite onto earth and find difference in time
+             
         #output_file = open(os.path.join(sys.path[0], 'satellite.log'), "w")
         #output_file.write("<{},{},{}>\n".format(newvector[0], newvector[1], newvector[2]))
         #output_file.close()
@@ -196,4 +209,6 @@ def rotateVectorAroundAxis(vec, roll, pitch, yaw) :
     y = vec[0] * (math.sin(yaw) * math.cos(pitch)) + vec[1] * ((math.sin(yaw) * math.sin(pitch) * math.sin(roll)) + (math.cos(yaw) * math.cos(roll))) + vec[2] * ((math.sin(yaw) * math.sin(pitch) * math.cos(roll)) - (math.cos(yaw) * math.sin(roll)))
     z = -vec[0] * math.sin(pitch) + vec[1] * math.cos(pitch) * math.sin(roll) + vec[2] * math.cos(pitch) * math.cos(roll)
     return [x,y,z]
+
+# call the program
 main()
