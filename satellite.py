@@ -9,8 +9,14 @@ class GeoCoordinate(Enum) :
     LONGITUDE = 0
     LATITUDE = 1
 
+# global variables
+pi = 0
+s = 0 
+c = 0
+r = 0
+
 def main() :
-    pi, s, c, r = getData()
+    pi, s, c, r, satellites = getData()
 
     for line in sys.stdin :
         if line == '':
@@ -45,6 +51,11 @@ def main() :
 
 # grab data from data.dat in local folder
 def getData() :
+    # initialize satellite data
+    satellites = list()
+    for i in range(0, 24):
+        offset = decimal.Decimal((i % 4) * (math.pi / 2))
+        satellites.append([[0,0,0],[0,0,0],0,0,0, offset])
 
     data_file = open(os.path.join(sys.path[0], 'data.dat'), "r")
     for line in data_file.readlines() :
@@ -54,20 +65,42 @@ def getData() :
 
         tokens = re.split('\s|,', line)
 
+        # remove empty strings from the list of tokens
+        while("" in tokens) :
+            tokens.remove("")
+
         if(len(tokens) == 0) :
             break
 
-        if(tokens[14] == 'pi') :
-            pi = decimal.Decimal(tokens[2])
-        elif(tokens[14] == 's') :
-            s = decimal.Decimal(tokens[2])
-        elif(tokens[14] == 'c') :
-            c = decimal.Decimal(tokens[2])
-        elif(tokens[14] == 'R') :
-            r = decimal.Decimal(tokens[2])
+        if(tokens[2] == 'pi') :
+            pi = decimal.Decimal(tokens[0])
+        elif(tokens[2] == 's') :
+            s = decimal.Decimal(tokens[0])
+        elif(tokens[2] == 'c') :
+            c = decimal.Decimal(tokens[0])
+        elif(tokens[2] == 'R') :
+            r = decimal.Decimal(tokens[0])
+        elif(tokens[2] == 'u1') :
+            satellites[int(tokens[5])][0][0] = decimal.Decimal(tokens[0])
+        elif(tokens[2] == 'u2') :
+            satellites[int(tokens[5])][0][1] = decimal.Decimal(tokens[0])
+        elif(tokens[2] == 'u3') :
+            satellites[int(tokens[5])][0][2] = decimal.Decimal(tokens[0])
+        elif(tokens[2] == 'v1') :
+            satellites[int(tokens[5])][1][0] = decimal.Decimal(tokens[0])
+        elif(tokens[2] == 'v2') :
+            satellites[int(tokens[5])][1][1] = decimal.Decimal(tokens[0])
+        elif(tokens[2] == 'v3') :
+            satellites[int(tokens[5])][1][2] = decimal.Decimal(tokens[0])
+        elif(tokens[2] == 'periodicity') :
+            satellites[int(tokens[5])][2] = decimal.Decimal(tokens[0])
+        elif(tokens[2] == 'altitude') :
+            satellites[int(tokens[5])][3] = decimal.Decimal(tokens[0])
+        elif(tokens[2] == 'phase') :
+            satellites[int(tokens[5])][4] = decimal.Decimal(tokens[0])
 
     data_file.close()
-    return pi, s, c, r
+    return pi, s, c, r, satellites
 
 # converts degree (geographic) to radians
 def degreeToRad(angle, angle_minute, angle_second, dir_value, geo_coordinate) :
@@ -116,7 +149,7 @@ def sphericalToCartesian(radius, angle_theta, angle_phi) :
     return [x, y, z]
 
 # get geographic coords from cartesian coords
-def cartesianToGeographic(x, r) :
+def cartesianToGeographic(x) :
     mag = magnitude(x)
     altitude = mag - r
     mag2 = math.sqrt(x[0] * x[0] + x[1] * x[1])
@@ -124,10 +157,26 @@ def cartesianToGeographic(x, r) :
     phi = (math.pi / 2) - math.atan(x[2] / mag2)
     return [theta, phi, altitude]
 
+# get the cartesian coordinates of satellite
+def getSatelliteCartesian(satellites, index, t) :
+    # out of bounds
+    if(index >= satellites.length and index < 0) :
+        return [0, 0, 0]   
+    angle = (2 * pi * t) / satellites[2]
+    u = scaleVector((r + satellites[index][3]) * math.cos(angle + satellites[index][5]), satellites[index][0])
+    v = scaleVector((r + satellites[index][3]) * math.sin(angle + satellites[index][5]), satellites[index][1])
+    return addVectors(u,v)
+
+# returns a vector that is scaled
+def scaleVector(scale, vec) :
+    x = vec * scale
+    y = vec * scale
+    z = vec * scale
+    return [x, y, z]
+
 # returns a normalized vector of u
 def normalize(u) :
-    mag = magnitude(u)
-    return [u[0] / mag, u[1] / mag, u[2] / mag]
+    return scaleVector(1/magnitude(u), u)
 
 # returns the magnitude of u
 def magnitude(u):
@@ -136,6 +185,10 @@ def magnitude(u):
 # returns the dot product of two vectors u and v
 def dotProduct(u, v) :
     return (u[0] * v[0]) + (u[1] * v[1]) + (u[2] * v[2])
+
+# addes two vectors
+def addVectors(u,v) :
+    return [u[0] + v[0], u[1] + v[1], u[2] + v[2]]
 
 #rotation in xyz order
 def rotateVectorAroundAxis(vec, roll, pitch, yaw) :
