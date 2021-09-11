@@ -46,6 +46,10 @@ def main() :
         lon_off = degreeToRad(lambda_d, lambda_m, lambda_s, ew_value, GeoCoordinate.LONGITUDE)
         time_rad = 0
 
+        vec = getCartesianCoords(EARTH_RADIUS + altitude, lon_off, lat_off)
+        sys.stdout.write("{},{},{}\n".format(vec[0],vec[1],vec[2]))
+        new_coord = cartesianToRad(vec)
+
         # calculate all positions of the object in each time step
         for step in range(t_steps + 1) :
             time = delta_time * step
@@ -55,8 +59,14 @@ def main() :
 
             lat_data = radToDegree(lat_off, GeoCoordinate.LATITUDE)
             lon_data = radToDegree(lon_off + time_rad, GeoCoordinate.LONGITUDE)
-            sys.stdout.write("{} {} {} {} {} {} {} {} {} {}\n".format(t_beg + t_v, lat_data[0], lat_data[1], lat_data[2], lat_data[3], lon_data[0], lon_data[1], lon_data[2], lon_data[3], altitude))
+            #sys.stdout.write("{} {} {} {} {} {} {} {} {} {}\n".format(t_beg + t_v, lat_data[0], lat_data[1], lat_data[2], lat_data[3], lon_data[0], lon_data[1], lon_data[2], lon_data[3], altitude))
     pass
+
+def getCartesianCoords(radius, angle_theta, angle_phi) :
+    x = radius * math.cos(angle_theta)*math.sin(angle_phi)
+    y = radius * math.sin(angle_theta)*math.sin(angle_phi)
+    z = radius * math.cos(angle_phi)
+    return [x, y, z]
 
 def degreeToRad(angle, angle_minute, angle_second, dir_value, geo_coordinate) :
     absolute_angle = angle + (angle_minute / 60.0) + (angle_second / 3600.0)
@@ -95,5 +105,15 @@ def radToDegree(angle, geo_coordinate) :
 
     return [angle, angle_min, angle_sec, dir_value]
 
+def magnitude(u):
+    return math.sqrt((u[0] * u[0]) + (u[1] * u[1]) + (u[2] * u[2]))
+
+def cartesianToRad(x) :
+    mag = magnitude(x)
+    altitude = mag - EARTH_RADIUS
+    mag2 = math.sqrt(x[0] * x[0] + x[1] * x[1])
+    theta = math.atan(x[1]/ x[0]) + math.pi
+    phi = (math.pi / 2) - math.atan(x[2] / mag2)
+    return [theta, phi, altitude]
 
 main()

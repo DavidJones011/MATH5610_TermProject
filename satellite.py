@@ -9,13 +9,6 @@ class GeoCoordinate(Enum) :
     LONGITUDE = 0
     LATITUDE = 1
 
-from enum import Enum
-class Axis(Enum) :
-    X = 0
-    Y = 1
-    Z = 2
-
-
 def main() :
     pi, s, c, r = getData()
 
@@ -29,7 +22,7 @@ def main() :
             break
 
         #store the tokenized data into the correct data types
-        t_v  = float(tokens[0])
+        t_v      = float(tokens[0])
         psi_d    = int(tokens[1])
         psi_m    = int(tokens[2])
         psi_s    = float(tokens[3])
@@ -38,19 +31,16 @@ def main() :
         lambda_m = int(tokens[6])
         lambda_s = float(tokens[7])
         ew_value = int(tokens[8])
-        altitude   = float(tokens[9])
+        altitude = float(tokens[9])
 
-        #lat_rad = degreeToRad(psi_d, psi_m, psi_s, ns_value, GeoCoordinate.LATITUDE)
-        #lon_rad = degreeToRad(lambda_d, lambda_m, lambda_s, ew_value, GeoCoordinate.LONGITUDE)
-        #x_v = getCartesianCoords(EARTH_RADIUS + altitude, lon_rad, lat_rad)
+        # get the cartesian coordinates of the vehicle
+        latitude = degreeToRad(psi_d, psi_m, psi_s, ns_value, GeoCoordinate.LATITUDE)
+        longitude = degreeToRad(lambda_d, lambda_m, lambda_s, ew_value, GeoCoordinate.LONGITUDE)
+        x_v = sphericalToCartesian(r + altitude, longitude, latitude)
 
-    #newvector = rotateVectorAroundAxis([5,0,0], math.pi/2.0, Axis.Y)
-    #newvector = normalize(newvector)
-
-    # writes the info into a file
-    #output_file = open(os.path.join(sys.path[0], 'satellite.log'), "w")
-    #output_file.write("<{},{},{}>\n".format(newvector[0], newvector[1], newvector[2]))
-    #output_file.close()
+        #output_file = open(os.path.join(sys.path[0], 'satellite.log'), "w")
+        #output_file.write("<{},{},{}>\n".format(newvector[0], newvector[1], newvector[2]))
+        #output_file.close()
     pass
 
 # grab data from data.dat in local folder
@@ -79,6 +69,7 @@ def getData() :
     data_file.close()
     return pi, s, c, r
 
+# converts degree (geographic) to radians
 def degreeToRad(angle, angle_minute, angle_second, dir_value, geo_coordinate) :
     absolute_angle = angle + (angle_minute / 60.0) + (angle_second / 3600.0)
 
@@ -92,6 +83,7 @@ def degreeToRad(angle, angle_minute, angle_second, dir_value, geo_coordinate) :
      
     return absolute_angle * PI / 180.0
 
+# converts radians to degrees (geographic)
 def radToDegree(angle, geo_coordinate) :
     absolute_angle = angle * 180.0 / PI
     dir_value = 1
@@ -116,23 +108,39 @@ def radToDegree(angle, geo_coordinate) :
 
     return [angle, angle_min, angle_sec, dir_value]
 
-def getCartesianCoords(radius, angle_theta, angle_phi) :
+# get cartesian coords from spherical coords
+def sphericalToCartesian(radius, angle_theta, angle_phi) :
     x = radius * math.cos(angle_theta)*math.sin(angle_phi)
     y = radius * math.sin(angle_theta)*math.sin(angle_phi)
     z = radius * math.cos(angle_phi)
     return [x, y, z]
 
+# get geographic coords from cartesian coords
+def cartesianToGeographic(x, r) :
+    mag = magnitude(x)
+    altitude = mag - r
+    mag2 = math.sqrt(x[0] * x[0] + x[1] * x[1])
+    theta = math.atan(x[1]/ x[0]) + math.pi
+    phi = (math.pi / 2) - math.atan(x[2] / mag2)
+    return [theta, phi, altitude]
+
+# returns a normalized vector of u
 def normalize(u) :
     mag = magnitude(u)
     return [u[0] / mag, u[1] / mag, u[2] / mag]
 
+# returns the magnitude of u
 def magnitude(u):
     return math.sqrt((u[0] * u[0]) + (u[1] * u[1]) + (u[2] * u[2]))
 
+# returns the dot product of two vectors u and v
 def dotProduct(u, v) :
     return (u[0] * v[0]) + (u[1] * v[1]) + (u[2] * v[2])
 
 #rotation in xyz order
 def rotateVectorAroundAxis(vec, roll, pitch, yaw) :
-    pass
+    x = vec[0] * (math.cos(yaw) * math.cos(pitch)) + vec[1] * ((math.cos(yaw) * math.sin(pitch) * math.sin(roll)) - (math.sin(yaw) * math.cos(roll))) + vec[2] * ((math.cos(yaw) * math.sin(pitch) * math.cos(roll)) + (math.sin(yaw) * math.sin(roll)))
+    y = vec[0] * (math.sin(yaw) * math.cos(pitch)) + vec[1] * ((math.sin(yaw) * math.sin(pitch) * math.sin(roll)) + (math.cos(yaw) * math.cos(roll))) + vec[2] * ((math.sin(yaw) * math.sin(pitch) * math.cos(roll)) - (math.cos(yaw) * math.sin(roll)))
+    z = -vec[0] * math.sin(pitch) + vec[1] * math.cos(pitch) * math.sin(roll) + vec[2] * math.cos(pitch) * math.cos(roll)
+    return [x,y,z]
 main()
