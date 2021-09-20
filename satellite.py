@@ -48,7 +48,7 @@ def main() :
             # use newtons method to find satellite position and time
             x_s, t_s = satelliteTimeAndLocOnSend(satellites, i, x_v, t_v)
             # send data for the satellites that are considered to be above the horizon plane
-            if dotProduct(x_v, subVectors(x_s, x_v)) > 0 :
+            if dotProduct(x_v, x_s) > dotProduct(x_v,x_v) :
                 output_file.write("{} {} {:e} {:e} {:e}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
 
     output_file.close()
@@ -119,7 +119,7 @@ def degreeToRad(angle, angle_minute, angle_second, dir_value, geo_coordinate) :
     elif(geo_coordinate == GeoCoordinate.LATITUDE) :
         absolute_angle = 90 - (dir_value * absolute_angle)
      
-    return decimal.Decimal(decimal.Decimal(absolute_angle) * pi / decimal.Decimal(180.0))
+    return decimal.Decimal(absolute_angle * pi / decimal.Decimal(180.0))
 
 # converts radians to degrees (geographic)
 def radToDegree(angle, geo_coordinate) :
@@ -182,21 +182,20 @@ def getSatelliteVelocity(satellites, index, t) :
 def satelliteTimeAndLocOnSend(satellites, index, x_v, t_v) :
     best_t = decimal.Decimal(t_v)
     prev_x = getSatelliteLocation(satellites, index, t_v)
-    prev_t = decimal.Decimal(t_v)
-    cur_t = decimal.Decimal(t_v - (magnitude(subVectors(prev_x,x_v)) / c))
+    prev_t = decimal.Decimal(t_v - (magnitude(subVectors(prev_x,x_v)) / c))
+    cur_t = 0
     threshold = decimal.Decimal(0.01) / c
 
-    i = 0
-
     # we want to have number of iterations in case NM diverges
-    while abs(cur_t - prev_t) >= threshold :
-        prev_t = cur_t
+    while abs(cur_t - prev_t) >= threshold : 
         prev_x = getSatelliteLocation(satellites, index, prev_t)
-        f = decimal.Decimal(magnitude(subVectors(prev_x, x_v)) - (c * (t_v - prev_t)))
-        f_prime = decimal.Decimal(2 * dotProduct(subVectors(prev_x, x_v), getSatelliteVelocity(satellites, index, prev_t))) + (2 * (c * c) * (t_v - prev_t))
-        cur_t = prev_t - (f / f_prime) + (2 * (c * c) * (t_v - prev_t))
+        f = magnitude(subVectors(prev_x, x_v)) - (c * (t_v - prev_t))
+        f_prime = (2 * dotProduct(subVectors(prev_x, x_v), getSatelliteVelocity(satellites, index, prev_t))) + (2 * (c * c) * (t_v - prev_t))
+        if(math.isinf(f_prime)) :
+            break;
+        cur_t = prev_t - (f / f_prime)
         best_t = cur_t - t_v
-        i = i + 1
+        prev_t = cur_t
 
     return getSatelliteLocation(satellites, index, best_t), best_t
 
@@ -206,10 +205,6 @@ def scaleVector(scale, vec) :
     y = decimal.Decimal(vec[1] * decimal.Decimal(scale))
     z = decimal.Decimal(vec[2] * decimal.Decimal(scale))
     return [x, y, z]
-
-# returns a normalized vector of u
-#def normalize(u) :
- #   return scaleVector(1 / magnitude(u), u)
 
 # returns the magnitude of u
 def magnitude(u):
@@ -225,14 +220,5 @@ def addVectors(u,v) :
 
 def subVectors(u,v) :
     return [u[0] - v[0], u[1] - v[1], u[2] - v[2]]
-
-#rotation in xyz order
-#def rotateVectorAroundAxis(vec, roll, pitch, yaw) :
-#    x = vec[0] * (math.cos(yaw) * math.cos(pitch)) + vec[1] * ((math.cos(yaw) * math.sin(pitch) * math.sin(roll)) - (math.sin(yaw) * math.cos(roll))) + vec[2] * ((math.cos(yaw) * math.sin(pitch) * math.cos(roll)) + (math.sin(yaw) * math.sin(roll)))
-#    y = vec[0] * (math.sin(yaw) * math.cos(pitch)) + vec[1] * ((math.sin(yaw) * math.sin(pitch) * math.sin(roll)) + (math.cos(yaw) * math.cos(roll))) + vec[2] * ((math.sin(yaw) * math.sin(pitch) * math.cos(roll)) - (math.cos(yaw) * math.sin(roll)))
-#    z = -vec[0] * math.sin(pitch) + vec[1] * math.cos(pitch) * math.sin(roll) + vec[2] * math.cos(pitch) * math.cos(roll)
-#    return [x,y,z]
-
-# call the program
 
 main()
