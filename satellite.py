@@ -217,10 +217,11 @@ def magnitude(u):
 def dotProduct(u, v) :
     return (u[0] * v[0]) + (u[1] * v[1]) + (u[2] * v[2])
 
-# addes two vectors
+# adds two vectors
 def addVectors(u,v) :
     return [u[0] + v[0], u[1] + v[1], u[2] + v[2]]
 
+# subtracts two vectors
 def subVectors(u,v) :
     return [u[0] - v[0], u[1] - v[1], u[2] - v[2]]
 
