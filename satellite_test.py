@@ -2,15 +2,17 @@ import sys
 import math
 import os
 import re
-import decimal
+from decimal import *
 
 def main() :
 
     line = sys.stdin.readline()
     tokens = re.split('\s|,', line)
+
     #remove whitespace
     while("" in tokens) :
         tokens.remove("")
+
     if(len(tokens) != 2) :
         sys.stdout.write("Input was invalid.\n")
         return
@@ -19,7 +21,8 @@ def main() :
     otherSatellites = getSatelliteData(tokens[1])
 
     if(len(thisSatellites) != len(otherSatellites)) :
-        sys.stdout.write("Number of satellites mismatched!\n")
+        sys.stdout.write("Failed! Number of satellites mismatched.\n")
+        return
 
 
     success = True
@@ -78,10 +81,10 @@ def getSatelliteData(fileName) :
 
         s = [0, 0, [0,0,0]]
         s[0]    = int(tokens[0])
-        s[1]    = decimal.Decimal(tokens[1])
-        s[2][0] = decimal.Decimal(tokens[2])
-        s[2][1] = decimal.Decimal(tokens[3])
-        s[2][2] = decimal.Decimal(tokens[4])
+        s[1]    = Decimal(tokens[1])
+        s[2][0] = Decimal(tokens[2])
+        s[2][1] = Decimal(tokens[3])
+        s[2][2] = Decimal(tokens[4])
         satellites.append(s)
         i = i + 1
 
@@ -93,6 +96,6 @@ def subVectors(u,v) :
     return [u[0] - v[0], u[1] - v[1], u[2] - v[2]]
 
 def magnitude(u):
-    return decimal.Decimal(math.sqrt((u[0] * u[0]) + (u[1] * u[1]) + (u[2] * u[2])))
+    return Decimal(Decimal.sqrt((u[0] * u[0]) + (u[1] * u[1]) + (u[2] * u[2])))
 
 main()
