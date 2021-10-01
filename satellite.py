@@ -3,6 +3,7 @@ import math
 import os
 import re
 from decimal import *
+import mpmath as mp
 
 from enum import Enum
 class GeoCoordinate(Enum) :
@@ -48,8 +49,8 @@ def main() :
             # use newtons method to find satellite position and time
             x_s, t_s = satelliteTimeAndLocOnSend(satellites, i, x_v, t_v)
 
-            if dotProduct(x_v, x_s) > dot_x_v :       
-                output_file.write("{} {} {:e} {:e} {:e}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
+            #if dotProduct(x_v, x_s) > dot_x_v :       
+            output_file.write("{} {} {:e} {:e} {:e}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
             
 
     output_file.close()
@@ -109,21 +110,21 @@ def getData() :
 
 # converts degree (geographic) to radians
 def degreeToRad(angle, angle_minute, angle_second, dir_value, geo_coordinate) :
-    absolute_angle = Decimal(angle) + (Decimal(angle_minute) / 60) + (angle_second / 3600)
+    absolute_angle = Decimal(angle) + (Decimal(angle_minute) / Decimal('60')) + (angle_second / Decimal('3600'))
 
     # convert the angle to be within (0,360)
     if(geo_coordinate == GeoCoordinate.LONGITUDE) :
-        absolute_angle =  ((1 - ((1 + dir_value) * Decimal(0.5))) * 360) + (dir_value * absolute_angle)
+        absolute_angle =  ((Decimal('1') - ((Decimal('1') + dir_value) * Decimal('0.5'))) * Decimal('360')) + (dir_value * absolute_angle)
         
     # convert the angle to be within (0, 180)   
     elif(geo_coordinate == GeoCoordinate.LATITUDE) :
-        absolute_angle = 90 - (dir_value * absolute_angle)
+        absolute_angle = Decimal('90') - (dir_value * absolute_angle)
      
-    return absolute_angle * (pi / 180)
+    return absolute_angle * (pi / Decimal('180'))
 
 # converts radians to degrees (geographic) #NOT IN USE
 def radToDegree(angle, geo_coordinate) :
-    absolute_angle = angle * 180.0 / pi
+    absolute_angle = angle * Decimal('180') / pi
     dir_value = 1
 
     # convert the range from (0, 360) to (0, 180)
@@ -159,12 +160,12 @@ def cartesianToGeographic(x) :
     altitude = mag - r
     mag2 = Decimal.sqrt(x[0] * x[0] + x[1] * x[1])
     theta = math.atan(x[1]/ x[0]) + pi
-    phi = (pi / 2) - math.atan(x[2] / mag2)
+    phi = (pi / Decimal('2')) - math.atan(x[2] / mag2)
     return [theta, phi, altitude]
 
 # get the cartesian coordinates of satellite
 def getSatelliteLocation(satellites, index, t) :
-    angle = (2 * pi * t) / satellites[index][2]
+    angle = (Decimal('2') * pi * t) / satellites[index][2]
     coeff = r + satellites[index][3]
     u = scaleVector(math.cos(angle + satellites[index][4]), satellites[index][0])
     v = scaleVector(math.sin(angle + satellites[index][4]), satellites[index][1])
@@ -172,35 +173,39 @@ def getSatelliteLocation(satellites, index, t) :
 
 # get the satellites velocity
 def getSatelliteVelocity(satellites, index, t) :
-    coeff = (2 * pi * (r + satellites[index][3])) / satellites[index][2]
-    angle = (2 * pi * t) / satellites[index][2]
-    u = scaleVector(-1 * math.sin(angle + satellites[index][4]), satellites[index][0])
-    v = scaleVector(math.cos(angle + satellites[index][4]), satellites[index][1])
+    coeff = (Decimal('2') * pi * (r + satellites[index][3])) / satellites[index][2]
+    angle = (Decimal('2') * pi * t) / satellites[index][2]
+    u = scaleVector(Decimal('-1') * Decimal(math.sin(angle + satellites[index][4])), satellites[index][0])
+    v = scaleVector(Decimal(math.cos(angle + satellites[index][4])), satellites[index][1])
     return scaleVector(coeff, addVectors(u,v))
 
 # get the satellite location and time to send the signal at x_v at time t
 def satelliteTimeAndLocOnSend(satellites, index, x_v, t_v) :
-    best_t = Decimal(t_v)
     x0_s = getSatelliteLocation(satellites, index, t_v)
-    prev_t = Decimal(0)
-    cur_t = t_v - (magnitude(subVectors(x0_s, x_v)) / c)
-    threshold = Decimal(0.01) / c
+    #prev_t = Decimal('0')
+    prev_t = t_v - (magnitude(subVectors(x0_s, x_v)) / c)
+    threshold = Decimal('0.01') / c
+    max_iterations = 200
 
     # we want to have number of iterations in case NM diverges
-    while Decimal.copy_abs(cur_t - prev_t) > threshold : 
-        cur_x = getSatelliteLocation(satellites, index, cur_t)
-        f = magnitude(subVectors(cur_x, x_v)) - (c * (t_v - cur_t))
-        f_prime = (2 * dotProduct(subVectors(cur_x, x_v), getSatelliteVelocity(satellites, index, cur_t))) + (2 * (c * c) * (t_v - cur_t))
+    for i in range(0,max_iterations) :
+        pos = getSatelliteLocation(satellites, index, prev_t)
 
-        # in the case the f' is not valid
-        if(math.isinf(f_prime)) :
+        # get f(x)
+        diff = subVectors(pos, x_v)
+        dot = dotProduct(diff, diff) - ((c**2) * ((t_v - prev_t)**2))
+        f = dot - (c**2) * ((t_v - prev_t)**2)
+        # get f'(x)
+        f_prime = (2 * dotProduct(subVectors(pos, x_v), getSatelliteVelocity(satellites, index, prev_t))) + (Decimal('2') * (c**2) * (t_v - prev_t))
+
+        cur_t = prev_t - (f / f_prime)
+
+        if abs(cur_t - prev_t) <= threshold :
             break
 
         prev_t = cur_t
-        cur_t = prev_t - (f / f_prime)
-        best_t = t_v + (cur_t - t_v)
 
-    return getSatelliteLocation(satellites, index, best_t), best_t
+    return getSatelliteLocation(satellites, index, cur_t), cur_t
 
 # returns a vector that is scaled
 def scaleVector(scale, vec) :
