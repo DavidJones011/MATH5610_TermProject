@@ -47,10 +47,11 @@ def main() :
         tTime = thisSatellites[i][1]
         oTime = otherSatellites[i][1]
 
-        if(abs(tTime - oTime) <= 1E-11) :
-            sys.stdout.write("Satellite times differ too much! {} and {}\n".format(tIndex, oIndex))
-            success = False
-            break
+        # could test for accuracy in seconds
+        #if(abs(tTime - oTime) <= 1E-11) :
+        #    sys.stdout.write("Satellite times differ too much! {} and {}\n".format(tIndex, oIndex))
+        #    success = False
+        #    break
 
         pass
 
