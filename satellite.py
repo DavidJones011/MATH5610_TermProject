@@ -1,14 +1,7 @@
 import sys
-import math
 import os
 import re
 import mpmath as mp
-import decimal as d
-
-from enum import Enum
-class GeoCoordinate(Enum) :
-    LONGITUDE = 0
-    LATITUDE = 1
 
 def main() :
     # set the decimal place for calculations
@@ -41,8 +34,8 @@ def main() :
         altitude = mp.mpf(tokens[9])
 
         # get the cartesian coordinates of the vehicle
-        latitude = degreeToRad(psi_d, psi_m, psi_s, ns_value, GeoCoordinate.LATITUDE)
-        longitude = degreeToRad(lambda_d, lambda_m, lambda_s, ew_value, GeoCoordinate.LONGITUDE)
+        latitude = degreeToRad(psi_d, psi_m, psi_s, ns_value)
+        longitude = degreeToRad(lambda_d, lambda_m, lambda_s, ew_value)
         x_v = sphericalToCartesian(r + altitude, longitude, latitude)
         x_v = rotate(x_v, t_v)
 
@@ -112,46 +105,10 @@ def getData() :
     data_file.close()
     return pi, s, c, r, satellites
 
-# converts degree (geographic) to radians
-def degreeToRad(angle, angle_minute, angle_second, dir_value, geo_coordinate) :
+# converts degree (geodesic) to radians
+def degreeToRad(angle, angle_minute, angle_second, dir_value) :
     absolute_angle = angle + mp.mpf(angle_minute / 60.0) + mp.mpf(angle_second / 3600.0)
-
-    #test = absolute_angle * (pi/180.0)
-
-    # convert the angle to be within (0,360)
-    #if(geo_coordinate == GeoCoordinate.LONGITUDE) :
-    #    absolute_angle = (1.0 - ((1.0 + dir_value) * 0.5) * 360.0) + (dir_value * absolute_angle)
-        
-    # convert the angle to be within (0, 180)   
-    #elif(geo_coordinate == GeoCoordinate.LATITUDE) :
-        #absolute_angle = 90.0 - (dir_value * absolute_angle)
-     
     return absolute_angle * (pi / 180.0) * dir_value
-
-# converts radians to degrees (geographic) #NOT IN USE
-def radToDegree(angle, geo_coordinate) :
-    absolute_angle = angle * Decimal('180') / pi
-    dir_value = 1
-
-    # convert the range from (0, 360) to (0, 180)
-    # also gets the EW value
-    if(geo_coordinate == GeoCoordinate.LONGITUDE) :
-        dir_value = int(-1 if (absolute_angle > pi) else 1)
-        absolute_angle = (absolute_angle - ((1 - ((1 + dir_value) * 0.5)) * 360.0)) * dir_value
-    
-    # converts the range from (0, 180) to (0,90)
-    # also gets the NS value
-    if(geo_coordinate == GeoCoordinate.LATITUDE) :
-        dir_value = int(-1 if (absolute_angle > 90) else 1)
-        absolute_angle = (absolute_angle - 90.0) * -dir_value
-
-    # calculates the angle in degree, minutes, and seconds
-    angle = int(math.floor(absolute_angle))
-    absolute_angle = (absolute_angle - angle) * 60.0
-    angle_min = int(math.floor(absolute_angle))
-    angle_sec = float((absolute_angle - angle_min) * 60.0)
-
-    return [angle, angle_min, angle_sec, dir_value]
 
 # get cartesian coords from spherical coords
 def sphericalToCartesian(radius, angle_lambda, angle_phi) :
@@ -159,15 +116,6 @@ def sphericalToCartesian(radius, angle_lambda, angle_phi) :
     y = radius * mp.sin(angle_lambda) * mp.cos(angle_phi)
     z = radius * mp.sin(angle_phi)
     return [x, y, z]
-
-# get geographic coords from cartesian coords #NOT IN USE
-def cartesianToGeographic(x) :
-    mag = magnitude(x)
-    altitude = mag - r
-    mag2 = mp.sqrt(x[0] * x[0] + x[1] * x[1])
-    theta = mp.atan(x[1]/ x[0]) + pi
-    phi = (pi / 2.0) - mp.atan(x[2] / mag2)
-    return [theta, phi, altitude]
 
 # get the cartesian coordinates of satellite
 def getSatelliteLocation(satellites, index, t) :
