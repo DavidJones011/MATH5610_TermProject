@@ -163,5 +163,27 @@ J = [[(xS1 - x)/magnitude(xS1 - x) - (xS2 - x)/magnitude(xS2 - x), (yS1 - y)/mag
 #
 #
 
+# creating derivatives as outlined in exercise 14
+# going to us xSi, can we refactor as needed and fill in for i such that i = 1,2,3,4...m-1?
+# iPlus1 --> i + 1, when referring to indices, not sure how we want assign values here, a function with a loop may be better?
+
+# initialize weird variables, then can loop through and update them accordinly
+
+# using a null initial value
+xSi = None
+xSiPlus1 = None
+ySi = None
+ySiPlus1 = None
+zSi = None
+zSiPlus1 = None
+tSi = None
+tSiPlus1 = None
+NiPlus1 = None
+
+Ni = magnitude(xSi - x)
+Ai = NiPlus1 - Ni - c(tSi - tSiPlus1)
+Xi = -(xSiPlus1 - x)/(NiPlus1) + (xSi - x)/Ni
+Yi = -(ySiPlus1 - y)/(NiPlus1) + (ySi - y)/Ni
+Zi = -(zSiPlus1 - z)/(NiPlus1) + (zSi - z)/Ni
 
 main()
