@@ -180,10 +180,28 @@ tSi = None
 tSiPlus1 = None
 NiPlus1 = None
 
+# we make some generalizations here to make the first order partial derivatives easier to write
 Ni = magnitude(xSi - x)
 Ai = NiPlus1 - Ni - c(tSi - tSiPlus1)
 Xi = -(xSiPlus1 - x)/(NiPlus1) + (xSi - x)/Ni
 Yi = -(ySiPlus1 - y)/(NiPlus1) + (ySi - y)/Ni
 Zi = -(zSiPlus1 - z)/(NiPlus1) + (zSi - z)/Ni
 
+# just writing the first order partials as seen in equation (73) on hw01
+def DXiDx(NiPlus1, xSiPlus1, Ni, xSi, x):
+    return ((NiPlus1^2) - (xSiPlus1 - x)^2)/(NiPlus1^3) - ((Ni^2) - (xSi - x)^2)/(Ni^3) 
+
+def DYiDx(NiPlus1, ySiPlus1, xSiPlus1, Ni, ySi, xSi, x, y):
+    return -((ySiPlus1 - y) * (xSiPlus1 - x))/(NiPlus1^3) + ((ySi - y) * (xSi - x))/(Ni^3) #equivalent to DXiDy (partial of Xi with respect to y)
+
+def DXiDz(NiPlus1, xSiPlus1, zSiPlus1, Ni, xSi, zSi, x, z):
+    return -((xSiPlus1 - x) * (zSiPlus1 - z))/(NiPlus1^3) + ((xSi - x) * (zSi - z))/(Ni^3) #equivalent to DZiDx
+
+def DYiDy(NiPlus1, ySiPlus1, Ni, ySi, y):
+    return ((NiPlus1^2) - (ySiPlus1 - y)^2)/(NiPlus1^3) - ((Ni^2) - (ySi - y)^2)/(Ni^3)
+
+# def DYiDz(NiPlus1, ySiPlus1, zSiPlus1, Ni, ySi, zSi, y, z):
+
+# def DZiDz(NiPlus1, zSiPlus1, Ni, zSi, z):
+    
 main()
