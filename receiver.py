@@ -168,8 +168,6 @@ J = [[(xS1 - x)/magnitude(xS1 - x) - (xS2 - x)/magnitude(xS2 - x), (yS1 - y)/mag
 # iPlus1 --> i + 1, when referring to indices, not sure how we want assign values here, a function with a loop may be better?
 
 # initialize weird variables, then can loop through and update them accordinly
-
-# using a null initial value
 xSi = None
 xSiPlus1 = None
 ySi = None
@@ -200,8 +198,10 @@ def DXiDz(NiPlus1, xSiPlus1, zSiPlus1, Ni, xSi, zSi, x, z):
 def DYiDy(NiPlus1, ySiPlus1, Ni, ySi, y):
     return ((NiPlus1^2) - (ySiPlus1 - y)^2)/(NiPlus1^3) - ((Ni^2) - (ySi - y)^2)/(Ni^3)
 
-# def DYiDz(NiPlus1, ySiPlus1, zSiPlus1, Ni, ySi, zSi, y, z):
+def DYiDz(NiPlus1, ySiPlus1, zSiPlus1, Ni, ySi, zSi, y, z):
+    return -((ySiPlus1 - y) * (zSiPlus1 - z))/(NiPlus1^3) + ((ySi - y) * (zSi - z))/(Ni^3)) #equivalent to DZiDy
 
-# def DZiDz(NiPlus1, zSiPlus1, Ni, zSi, z):
+def DZiDz(NiPlus1, zSiPlus1, Ni, zSi, z):
+    return ((NiPlus1^2) - (zSiPLus1 - z)^2)/(NiPlus1^3) - ((Ni^2) - (zSi - z)^2)/(Ni^3)
     
 main()
