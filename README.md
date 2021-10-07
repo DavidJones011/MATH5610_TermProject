@@ -8,5 +8,5 @@ which in turn translates the data, computes the posisition, route, and velocity 
 it to the receiver where the data is communicated to the operator of the vehicle. The vehicle class was provided, as well as a built in "trip" starting at a lamp post with provided
 longitude and latitude coordinates.
 
-To aid the reader's understanding, we have also included the file from the assingment which includes all the prompts and mathematical reasoning. We were tasked with doing the mathematics
+To aid the reader's understanding, we have also included the file from the assingment which includes all the prompts and mathematical reasoning (*see hw01_tp.pdf). We were tasked with doing the mathematics
 and setting up the equations by hand, and then translating the equations into code, in our case, Python --> Unix.
