@@ -1,12 +1,13 @@
 from MATH5610_TermProject.satellite import magnitude, satelliteTimeAndLocOnSend
 import sys
-import math
+import mpmath as mp
 import os
 import re
-from decimal import *
 
 def main() :
-
+    # set the decimal place for calculations
+    mp.mp.dps = 17
+    # create and set global variables
     global pi, s, c, r
     pi, s, c, r = getData()
     sattellites, startIndicies = readSatelliteData()
@@ -21,6 +22,7 @@ def main() :
 
             # calculate first order and second order partial derivatives
             
+
             # newtons method
 
             pass
@@ -59,13 +61,13 @@ def getData() :
             break
 
         if(tokens[2] == 'pi') :
-            pi = Decimal(tokens[0])
+            pi = mp.mpf(tokens[0])
         elif(tokens[2] == 's') :
-            s = Decimal(tokens[0])
+            s = mp.mpf(tokens[0])
         elif(tokens[2] == 'c') :
-            c = Decimal(tokens[0])
+            c = mp.mpf(tokens[0])
         elif(tokens[2] == 'R') :
-            r = Decimal(tokens[0])
+            r = mp.mpf(tokens[0])
 
     data_file.close()
     return pi, s, c, r
@@ -89,10 +91,10 @@ def readSatelliteData() :
 
         cur_satellite = [0, 0, [0,0,0]]
         cur_satellite[0] = int(tokens[0])
-        cur_satellite[1] = Decimal(tokens[1])
-        cur_satellite[2][0] = Decimal(tokens[2])
-        cur_satellite[2][1] = Decimal(tokens[3])
-        cur_satellite[2][2] = Decimal(tokens[4])
+        cur_satellite[1] = mp.mpf(tokens[1])
+        cur_satellite[2][0] = mp.mpf(tokens[2])
+        cur_satellite[2][1] = mp.mpf(tokens[3])
+        cur_satellite[2][2] = mp.mpf(tokens[4])
         satellites.append(cur_satellite)
 
         # found a new set of satellites for a new position
@@ -107,6 +109,9 @@ def readSatelliteData() :
     return satellites, startIndices
 
 def calculateFirstOrderPartDeriv(vec, satellites, start, count) :
+
+    
+
     pass
 
 def calculateSecOrderPartDeriv(vec, satellites, start, count) :
@@ -114,7 +119,7 @@ def calculateSecOrderPartDeriv(vec, satellites, start, count) :
 
 # returns the magnitude of u
 def magnitude(u):
-    return Decimal.sqrt((u[0] * u[0]) + (u[1] * u[1]) + (u[2] * u[2]))
+    return mp.sqrt((u[0] * u[0]) + (u[1] * u[1]) + (u[2] * u[2]))
 
 # returns the dot product of two vectors u and v
 def dotProduct(u, v) :
@@ -130,16 +135,16 @@ def subVectors(u,v) :
 
 # returns a vector that is scaled by the scalar
 def scaleVector(scale, vec) :
-    x = Decimal(vec[0] * Decimal(scale))
-    y = Decimal(vec[1] * Decimal(scale))
-    z = Decimal(vec[2] * Decimal(scale))
+    x = mp.mpf(vec[0] * mp.mpf(scale))
+    y = mp.mpf(vec[1] * mp.mpf(scale))
+    z = mp.mpf(vec[2] * mp.mpf(scale))
     return [x, y, z]
 
 # returns a vector that is scaled by the inverse of the scalar
 def invScaleVector(scale, vec) :
-    x = Decimal(vec[0] / Decimal(scale))
-    y = Decimal(vec[1] / Decimal(scale))
-    z = Decimal(vec[2] / Decimal(scale))
+    x = mp.mpf(vec[0] / mp.mpf(scale))
+    y = mp.mpf(vec[1] / mp.mpf(scale))
+    z = mp.mpf(vec[2] / mp.mpf(scale))
     return [x, y, z]
 
 # creating the Jacobian J(x) as defined in exercise 13
