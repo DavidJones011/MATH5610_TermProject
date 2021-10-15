@@ -10,19 +10,24 @@ def main() :
     global pi, s, c, r
     pi, s, c, r = getData()
     sattellites, startIndicies = readSatelliteData()
-    num = len(sattellites)
+    numPositions = len(startIndicies) - 1
 
-    for i in range(0,num) : 
+    for i in range(0, numPositions) :
 
-        x_v = [0,0,0]
-        count = 0
-        if (i + 1) < num :
-            count = (startIndicies[i+1] - startIndicies[i]) + 1
-        else :
-            count = (num - startIndicies[i]) + 1
+        startIndex = startIndicies[i]
+        count = startIndicies[i+1] - startIndex
 
-        calculateFirstOrderPartDeriv(x_v, sattellites, startIndicies[i], count)
-        #calculateSecOrderPartDeriv(x_v, satellites, startIndicies[i], count)
+        for i in range(0, count) :
+
+            # calculate first order and second order partial derivatives
+            
+            # newtons method
+
+            pass
+
+        # convert to geodesic coordinates
+
+        # ouput results
 
         pass
 
@@ -69,11 +74,10 @@ def getData() :
 def readSatelliteData() :
     satellites = list()
     startIndices = list()
-
-    prevIndex = 0
-    curIndex = 0
-
+    #satellite indices range from 0-23
+    prevIndex = 24
     index = 0
+
     for line in sys.stdin :
         if line == '':
             break
@@ -91,30 +95,19 @@ def readSatelliteData() :
         cur_satellite[2][2] = Decimal(tokens[4])
         satellites.append(cur_satellite)
 
+        # found a new set of satellites for a new position
+        # store the starting index
         if cur_satellite[0] < prevIndex : 
             startIndices.append(index)
 
         prevIndex = cur_satellite[0]
         index = index + 1
 
+    startIndices.append(len(startIndices))
     return satellites, startIndices
 
 def calculateFirstOrderPartDeriv(vec, satellites, start, count) :
-
-    for i in range(start, end+1) :
-
-
-    c_magnitude = magnitude(subVectors(c_satellite[2], vec))
-    n_magnitude = magnitude(subVectors(n_satellite[2], vec))
-
-    a_i = n_magnitude - c_magnitude - c * (c_satellite[1] - n_satellite[1])
-
-    der = addVectors(invScaleVector(-n_magnitude, subVectors(n_satellite[2], vec)),
-                    invScaleVector(c_magnitude, subVectors(c_satellite[2], vec)))
-
-    der = scaleVector(a_i, der)
-
-    return der
+    pass
 
 def calculateSecOrderPartDeriv(vec, satellites, start, count) :
     pass
@@ -153,9 +146,9 @@ def invScaleVector(scale, vec) :
 # we will use J(x) to solve the nonlinear system of 4 equations
 # there is probably an elegant way to automate the creation of the jacobian and append each element via a for loop
 
-J = [[(xS1 - x)/magnitude(xS1 - x) - (xS2 - x)/magnitude(xS2 - x), (yS1 - y)/magnitude(xS1 - x) - (yS2 - y)/magnitude(xS2 - x), (zS1 - z)/magnitude(xS1 - x) - (zS2 - z)/magnitude(xS2 - x)],
-     [(xS2 - x)/magnitude(xS2 - x) - (xS3 - x)/magnitude(xS3 - x), (yS2 - y)/magitude(xS2 - x) - (yS3 - y)/magnitude(xS3 - x), (zS2 - z)/magnitude(xS2 - x) - (zS3 - z)/magnitude(xS3 - x)],
-     [(xS3 - x)/magnitude(xS3 - x) - (xS4 -x)/magnitude(xS4 - x), (yS3 - y)/magnitude(xS3 - x) - (yS4 - y)/magnitude(xS4 - x), (z3 - z)/magnitude(xS3 - x) - (z4 - z)/magnitude(xS4 - x)]]
+#J = [[(xS1 - x)/magnitude(xS1 - x) - (xS2 - x)/magnitude(xS2 - x), (yS1 - y)/magnitude(xS1 - x) - (yS2 - y)/magnitude(xS2 - x), (zS1 - z)/magnitude(xS1 - x) - (zS2 - z)/magnitude(xS2 - x)],
+#     [(xS2 - x)/magnitude(xS2 - x) - (xS3 - x)/magnitude(xS3 - x), (yS2 - y)/magitude(xS2 - x) - (yS3 - y)/magnitude(xS3 - x), (zS2 - z)/magnitude(xS2 - x) - (zS3 - z)/magnitude(xS3 - x)],
+#     [(xS3 - x)/magnitude(xS3 - x) - (xS4 -x)/magnitude(xS4 - x), (yS3 - y)/magnitude(xS3 - x) - (yS4 - y)/magnitude(xS4 - x), (z3 - z)/magnitude(xS3 - x) - (z4 - z)/magnitude(xS4 - x)]]
 
 # we want to solve J(x^(k))s^(k) = -F(x^(k)) where x^(k+1) = x^(k) + s^(k)
 #
