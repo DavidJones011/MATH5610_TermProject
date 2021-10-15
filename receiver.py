@@ -17,16 +17,11 @@ def main() :
 
         startIndex = startIndicies[i]
         count = startIndicies[i+1] - startIndex
+        x_0 = [0,0,0]
 
-        for i in range(0, count) :
-
-            # calculate first order and second order partial derivatives
-            
-
-            # newtons method
-
-            pass
-
+        # use newtons method to find the vehicle coordinates in cartesian
+        calculateFirstOrderPartDeriv(x_0, sattellites, startIndex, count)
+        
         # convert to geodesic coordinates
 
         # ouput results
@@ -108,14 +103,29 @@ def readSatelliteData() :
     startIndices.append(len(startIndices))
     return satellites, startIndices
 
-def calculateFirstOrderPartDeriv(vec, satellites, start, count) :
+def calculateFirstOrderPartDeriv(x, satellites, startIndex, count) :
+    vec = [mp.mpf(0.0),mp.mpf(0.0),mp.mpf(0.0)]
+    for i in range(0,count-1) :
+        index = startIndex + i
+        n_i = magnitude(subVectors(satellites[index][2], x))
+        n_iplus1 = magnitude(subVectors(satellites[index+1][2], x))
+        a_i = n_iplus1 - n_i - c * (satellites[index][1] - satellites[index+1][1])
+        df = addVectors(invScaleVector(-n_iplus1, subVectors(satellites[index+1], x)), invScaleVector(n_i, subVectors(satellites[index][2], x)))
+        df = scaleVector(a_i, df)
+        vec = addVectors(vec, df)
+    return scaleVector(2, vec)
 
-    
-
-    pass
-
-def calculateSecOrderPartDeriv(vec, satellites, start, count) :
-    pass
+def calculateSecOrderPartDeriv(x, satellites, startIndex, count) :
+    matrix = list()
+    for i in range(0,count-1) :
+        index = startIndex + i
+        n_i = magnitude(subVectors(satellites[index][2], x))
+        n_iplus1 = magnitude(subVectors(satellites[index+1][2], x))
+        DXidx = DXiDx(n_iplus1, satellites[index+1][2][0], n_i, satellites[index][2][0], x[0])
+        DXidy = DYidx = DYiDx(n_iplus1, satellites[index+1][2][1], satellites[index+1][2][0], n_i, satellites[index][2][1], satellites[index][2][0], x[0], x[1])
+        DXidz = DZidx = DXiDz(n_iplus1, satellites[index+1][2][0], satellites[index+1][2][2], n_i, satellites[index][2][0], satellites[index][2][2], x[0], x[2])
+        DYidy = DYiDy(n_iplus1, satellites[index+1][2][1], n_i, satellites[index][2][1], x[1])
+    return matrix
 
 # returns the magnitude of u
 def magnitude(u):
@@ -166,22 +176,22 @@ def invScaleVector(scale, vec) :
 # iPlus1 --> i + 1, when referring to indices, not sure how we want assign values here, a function with a loop may be better?
 
 # initialize weird variables, then can loop through and update them accordinly
-xSi = None
-xSiPlus1 = None
-ySi = None
-ySiPlus1 = None
-zSi = None
-zSiPlus1 = None
-tSi = None
-tSiPlus1 = None
-NiPlus1 = None
+#xSi = None
+#xSiPlus1 = None
+#ySi = None
+#ySiPlus1 = None
+#zSi = None
+#zSiPlus1 = None
+#tSi = None
+#tSiPlus1 = None
+#NiPlus1 = None
 
 # we make some generalizations here to make the first order partial derivatives easier to write
-Ni = magnitude(xSi - x)
-Ai = NiPlus1 - Ni - c(tSi - tSiPlus1)
-Xi = -(xSiPlus1 - x)/(NiPlus1) + (xSi - x)/Ni
-Yi = -(ySiPlus1 - y)/(NiPlus1) + (ySi - y)/Ni
-Zi = -(zSiPlus1 - z)/(NiPlus1) + (zSi - z)/Ni
+#Ni = magnitude(xSi - x)
+#Ai = NiPlus1 - Ni - c(tSi - tSiPlus1)
+#Xi = -(xSiPlus1 - x)/(NiPlus1) + (xSi - x)/Ni
+#Yi = -(ySiPlus1 - y)/(NiPlus1) + (ySi - y)/Ni
+#Zi = -(zSiPlus1 - z)/(NiPlus1) + (zSi - z)/Ni
 
 # just writing the first order partials as seen in equation (73) on hw01
 def DXiDx(NiPlus1, xSiPlus1, Ni, xSi, x):
@@ -197,9 +207,9 @@ def DYiDy(NiPlus1, ySiPlus1, Ni, ySi, y):
     return ((NiPlus1^2) - (ySiPlus1 - y)^2)/(NiPlus1^3) - ((Ni^2) - (ySi - y)^2)/(Ni^3)
 
 def DYiDz(NiPlus1, ySiPlus1, zSiPlus1, Ni, ySi, zSi, y, z):
-    return -((ySiPlus1 - y) * (zSiPlus1 - z))/(NiPlus1^3) + ((ySi - y) * (zSi - z))/(Ni^3)) #equivalent to DZiDy
+    return -((ySiPlus1 - y) * (zSiPlus1 - z))/(NiPlus1^3) + ((ySi - y) * (zSi - z))/(Ni^3) #equivalent to DZiDy
 
 def DZiDz(NiPlus1, zSiPlus1, Ni, zSi, z):
-    return ((NiPlus1^2) - (zSiPLus1 - z)^2)/(NiPlus1^3) - ((Ni^2) - (zSi - z)^2)/(Ni^3)
+    return ((NiPlus1^2) - (zSiPlus1 - z)^2)/(NiPlus1^3) - ((Ni^2) - (zSi - z)^2)/(Ni^3)
     
 main()
