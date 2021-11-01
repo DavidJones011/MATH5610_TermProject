@@ -1,6 +1,6 @@
-from MATH5610_TermProject.satellite import magnitude, satelliteTimeAndLocOnSend
 import sys
 import mpmath as mp
+import numpy as np
 import os
 import re
 
@@ -12,30 +12,43 @@ def main() :
     pi, s, c, r = getData()
     sattellites, startIndicies = readSatelliteData()
     numPositions = len(startIndicies) - 1
+    max_iterations = 200
+
+    output_file = open(os.path.join(sys.path[0], 'satellite.log'), "w")
 
     for i in range(0, numPositions) :
 
         startIndex = startIndicies[i]
         count = startIndicies[i+1] - startIndex
-        x_0 = [0,0,0]
+        x_i = np.array([-1795225.28, -4477174.36, 4158593.45])
 
-        # use newtons method to find the vehicle coordinates in cartesian
-        calculateFirstOrderPartDeriv(x_0, sattellites, startIndex, count)
-        
-        # convert to geodesic coordinates
+        for k in range (0, max_iterations) :   
+            F, J_inv = test(x_i, sattellites, startIndex, count)
+            s_i = np.linalg.solve(J_inv, -F)
+            
+            x_ip1 = x_i + s_i
+            diff = x_ip1 - x_i
+            x_i = x_ip1
+            if(abs(diff) < 0.01) :
+                break
+            pass
 
-        # ouput results
+        sys.stdout.write("{} {} {}\n".format(x_i[0], x_i[1], x_i[2]))
+        # convert to geodesic coords and print
+        #output_file.write("{} {} {} {} {}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
+        #sys.stdout.write("{} {} {} {} {}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
 
         pass
 
+    output_file.close()
     pass
 
 # grab data from data.dat in local folder
 def getData() :
     # initialize satellite data
-    satellites = list()
-    for i in range(0, 24):
-        satellites.append([[0,0,0],[0,0,0],0,0,0])
+    #satellites = list()
+    #for i in range(0, 24):
+    #    satellites.append([[0,0,0],[0,0,0],0,0,0])
 
     data_file = open(os.path.join(sys.path[0], 'data.dat'), "r")
 
@@ -56,13 +69,13 @@ def getData() :
             break
 
         if(tokens[2] == 'pi') :
-            pi = mp.mpf(tokens[0])
+            pi = np.float64(tokens[0])
         elif(tokens[2] == 's') :
-            s = mp.mpf(tokens[0])
+            s = np.float64(tokens[0])
         elif(tokens[2] == 'c') :
-            c = mp.mpf(tokens[0])
+            c = np.float64(tokens[0])
         elif(tokens[2] == 'R') :
-            r = mp.mpf(tokens[0])
+            r = np.float64(tokens[0])
 
     data_file.close()
     return pi, s, c, r
@@ -71,7 +84,6 @@ def getData() :
 def readSatelliteData() :
     satellites = list()
     startIndices = list()
-    #satellite indices range from 0-23
     prevIndex = 24
     index = 0
 
@@ -84,25 +96,73 @@ def readSatelliteData() :
         if(len(tokens) == 0) :
             break
 
-        cur_satellite = [0, 0, [0,0,0]]
+        cur_satellite = [0, 0, np.array([0,0,0])]
         cur_satellite[0] = int(tokens[0])
-        cur_satellite[1] = mp.mpf(tokens[1])
-        cur_satellite[2][0] = mp.mpf(tokens[2])
-        cur_satellite[2][1] = mp.mpf(tokens[3])
-        cur_satellite[2][2] = mp.mpf(tokens[4])
+        cur_satellite[1] = np.float64(tokens[1])
+        cur_satellite[2] = np.array([np.float64(tokens[2]), np.float64(tokens[3]), np.float64(tokens[4])])
+        #cur_satellite[2][0] = mp.mpf(tokens[2])
+        #cur_satellite[2][1] = mp.mpf(tokens[3])
+        #cur_satellite[2][2] = mp.mpf(tokens[4])
         satellites.append(cur_satellite)
 
         # found a new set of satellites for a new position
         # store the starting index
-        if cur_satellite[0] < prevIndex : 
+        if cur_satellite[0] <= prevIndex : 
             startIndices.append(index)
 
         prevIndex = cur_satellite[0]
         index = index + 1
 
-    startIndices.append(len(startIndices))
+    startIndices.append(len(satellites))
     return satellites, startIndices
 
+#
+def test(x, satellites, startIndex, count) :
+    
+    #initialize local variables
+    DFdx = 0.0
+    DFdy = 0.0
+    DFdz = 0.0
+
+    J_inv = np.array([[0, 0, 0],
+                      [0, 0, 0],
+                      [0, 0, 0]])
+
+    for i in range(0, count-1) :
+        diff = satellites[i][2] - x
+        diff2 = satellites[i+1][2] - x
+
+        N_i = np.linalg.norm(diff)
+        N_ip1 = np.linalg.norm(diff2)
+        Ai = N_ip1 - N_i - (c * (satellites[i][1] - satellites[i+1][1]))
+        Xi = -(diff2[0]/N_ip1) + (diff[0]/N_i)
+        Yi = -(diff2[1]/N_ip1) + (diff[1]/N_i)
+        Zi = -(diff2[2]/N_ip1) + (diff[2]/N_i)
+
+        s_i = satellites[i][2]
+        s_ip1 = satellites[i+1][2]
+        DXidx = DXiDx(N_ip1, s_ip1[0], N_i, s_i[0], x[0])
+        DXidy = DYidx = DYiDx(N_ip1, s_ip1[1], s_ip1[0], N_i, s_i[1], s_i[0], x[0], x[1])
+        DXidz = DZidx = DXiDz(N_ip1, s_ip1[0], s_ip1[2], N_i, s_i[0], s_i[2], x[0], x[2])
+        DYidy = DYiDy(N_ip1, s_ip1[1], N_i, s_i[1], x[1])
+        DYidz = DZidy = DYiDz(N_ip1, s_ip1[1], s_ip1[2], N_i, s_i[1], s_i[2], x[1], x[2])
+        DZidz = DZiDz(N_ip1, s_ip1[2], N_i, s_i[2], x[2])
+
+        DFdx += Ai * Xi
+        DFdy += Ai * Yi
+        DFdz += Ai * Zi
+
+        J_inv += np.array([[(Xi * Xi) + (Ai * DXidx), (Xi * Yi) + (Ai * DXidy), (Xi * Zi) + (Ai * DXidz)],
+                          [(Xi * Yi) + (Ai * DXidy), (Yi * Yi) + (Ai * DYidy), (Yi * Zi) + (Ai * DYidz)],
+                          [(Xi * Zi) + (Ai * DXidz), (Yi * Zi) + (Ai * DYidz), (Zi * Zi) + (Ai * DZidz)]])
+
+        pass
+
+    F = np.array([2 * DFdx, 2 * DFdy, 2 * DFdz])
+    J_inv = J_inv * 2
+    return F, J_inv
+
+# 
 def calculateFirstOrderPartDeriv(x, satellites, startIndex, count) :
     vec = [mp.mpf(0.0),mp.mpf(0.0),mp.mpf(0.0)]
     for i in range(0,count-1) :
@@ -113,10 +173,12 @@ def calculateFirstOrderPartDeriv(x, satellites, startIndex, count) :
         df = addVectors(invScaleVector(-n_iplus1, subVectors(satellites[index+1], x)), invScaleVector(n_i, subVectors(satellites[index][2], x)))
         df = scaleVector(a_i, df)
         vec = addVectors(vec, df)
-    return scaleVector(2, vec)
 
+    vec = scaleVector(2, vec)
+    return np.array([vec[0], vec[1], vec[2]])
+
+#
 def calculateSecOrderPartDeriv(x, satellites, startIndex, count) :
-    matrix = list()
     for i in range(0,count-1) :
         index = startIndex + i
         n_i = magnitude(subVectors(satellites[index][2], x))
@@ -125,7 +187,9 @@ def calculateSecOrderPartDeriv(x, satellites, startIndex, count) :
         DXidy = DYidx = DYiDx(n_iplus1, satellites[index+1][2][1], satellites[index+1][2][0], n_i, satellites[index][2][1], satellites[index][2][0], x[0], x[1])
         DXidz = DZidx = DXiDz(n_iplus1, satellites[index+1][2][0], satellites[index+1][2][2], n_i, satellites[index][2][0], satellites[index][2][2], x[0], x[2])
         DYidy = DYiDy(n_iplus1, satellites[index+1][2][1], n_i, satellites[index][2][1], x[1])
-    return matrix
+    return np.array([DXidx, DXidy, DXidz],
+                    [DYidx, DYidy, DYidz],
+                    [DZidx, DZidy, DZidz])
 
 # returns the magnitude of u
 def magnitude(u):
