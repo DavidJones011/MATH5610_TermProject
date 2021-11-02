@@ -17,27 +17,29 @@ def main() :
     output_file = open(os.path.join(sys.path[0], 'satellite.log'), "w")
 
     for i in range(0, numPositions) :
-
         startIndex = startIndicies[i]
         count = startIndicies[i+1] - startIndex
-        x_i = np.array([-1795225.28, -4477174.36, 4158593.45])
+        threshold = np.float64(0.01 / c)
+        x_0 = np.array([-1795225.28, -4477174.36, 4158593.45])
+        x_i = x_0
 
+        # newtons method to find the vehicle location
         for k in range (0, max_iterations) :   
             F, J_inv = test(x_i, sattellites, startIndex, count)
             s_i = np.linalg.solve(J_inv, -F)
-            
             x_ip1 = x_i + s_i
             diff = x_ip1 - x_i
             x_i = x_ip1
-            if(abs(diff) < 0.01) :
+            if(abs(np.linalg.norm(diff)) < threshold) :
                 break
             pass
 
-        sys.stdout.write("{} {} {}\n".format(x_i[0], x_i[1], x_i[2]))
-        # convert to geodesic coords and print
-        #output_file.write("{} {} {} {} {}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
-        #sys.stdout.write("{} {} {} {} {}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
-
+        # get t_v
+        t_v = (np.linalg.norm(sattellites[startIndex][2] - x_i) / c) + sattellites[startIndex][1]
+        # get geodesic coords
+        h, lambda_d, lambda_m, lambda_s, phi_d, phi_m, phi_s, NS, EW = cartesianToGeodesic(x_0, t_v)
+        sys.stdout.write("{} {} {} {} {} {} {} {} {} {}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
+        output_file.write("{} {} {} {} {} {} {} {} {} {}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
         pass
 
     output_file.close()
@@ -118,15 +120,15 @@ def readSatelliteData() :
 
 #
 def test(x, satellites, startIndex, count) :
-    
+
     #initialize local variables
     DFdx = 0.0
     DFdy = 0.0
     DFdz = 0.0
 
-    J_inv = np.array([[0, 0, 0],
-                      [0, 0, 0],
-                      [0, 0, 0]])
+    J_inv = np.array([[0.0, 0.0, 0.0],
+                      [0.0, 0.0, 0.0],
+                      [0.0, 0.0, 0.0]])
 
     for i in range(0, count-1) :
         diff = satellites[i][2] - x
@@ -161,6 +163,56 @@ def test(x, satellites, startIndex, count) :
     F = np.array([2 * DFdx, 2 * DFdy, 2 * DFdz])
     J_inv = J_inv * 2
     return F, J_inv
+
+def cartesianToGeodesic(x, t_v) :
+
+    x = rotate(x, t_v)
+
+    #calculate the height
+    h = np.float64(np.linalg.norm(x) - r)
+
+    # calculate phi
+    sq_dst = np.power(x[0], 2) + np.power(x[1], 2)
+    phi = np.float64(0.0)
+    if(sq_dst != 0.0) :
+        phi = np.arctan2(x[2], np.sqrt(sq_dst))
+    else :
+        if(x[2] > 0.0) :
+            phi = pi / 2.0
+        elif(x[2] < 0.0) :
+            phi = -pi / 2
+
+    # calculate lambda
+    lamb = np.float64(0.0)
+    if(x[0] > 0.0 and x[1] > 0.0) :
+        lamb = np.arctan2(x[1], x[0])
+    elif(x[0] < 0.0) :
+        lamb = pi + np.arctan2(x[1], x[0])
+    elif(x[0] > 0.0 and x[1] < 0.0) :
+        lamb = (2 * pi) + np.arctan2(x[1], x[0])
+
+    # convert to degrees
+    lamb = 180.0 * lamb / pi
+    phi = 180.0 * phi / pi
+
+    # get geodesic coords for lambda
+    EW = int(np.sign(np.dot(rotate(np.array([1, 0, 0]), t_v), np.array([x[0], x[1], 0.0]))))
+    lamb = 180.0 - lamb if (EW < 0) else 360.0 + lamb 
+    lambda_d = int(lamb)
+    lamb = (lamb - lambda_d) * 60.0
+    lambda_m = int(lamb)
+    lamb -= lambda_m
+    lambda_s = lamb * 60.0
+
+    # get geodesic coords for phi
+    NS = 1 if (phi >= 0) else -1
+    phi_d = int(phi)
+    phi = (phi - phi_d) * 60.0
+    phi_m = int(phi)
+    phi = phi - phi_m
+    phi_s = phi * 60.0
+
+    return h, lambda_d, lambda_m, lambda_s, phi_d, phi_m, phi_s, NS, EW
 
 # 
 def calculateFirstOrderPartDeriv(x, satellites, startIndex, count) :
@@ -221,6 +273,13 @@ def invScaleVector(scale, vec) :
     z = mp.mpf(vec[2] / mp.mpf(scale))
     return [x, y, z]
 
+def rotate(u, t_v) :
+    time_offset = (2*pi*t_v) / s
+    v = np.array([(np.cos(time_offset) * u[0]) + (-np.sin(time_offset) * u[1]),
+                  (np.sin(time_offset) * u[0]) + (np.cos(time_offset) * u[1]),
+                   u[2]])
+    return v
+
 # creating the Jacobian J(x) as defined in exercise 13
 # we will use J(x) to solve the nonlinear system of 4 equations
 # there is probably an elegant way to automate the creation of the jacobian and append each element via a for loop
@@ -259,21 +318,21 @@ def invScaleVector(scale, vec) :
 
 # just writing the first order partials as seen in equation (73) on hw01
 def DXiDx(NiPlus1, xSiPlus1, Ni, xSi, x):
-    return ((NiPlus1^2) - (xSiPlus1 - x)^2)/(NiPlus1^3) - ((Ni^2) - (xSi - x)^2)/(Ni^3) 
+    return ((np.power(NiPlus1, 3) - np.power(xSiPlus1 - x, 2)) / np.power(NiPlus1, 3)) - ((np.power(Ni,2) - np.power(xSi - x, 2)) / np.power(Ni, 3))
 
 def DYiDx(NiPlus1, ySiPlus1, xSiPlus1, Ni, ySi, xSi, x, y):
-    return -((ySiPlus1 - y) * (xSiPlus1 - x))/(NiPlus1^3) + ((ySi - y) * (xSi - x))/(Ni^3) #equivalent to DXiDy (partial of Xi with respect to y)
+    return -(((ySiPlus1 - y) * (xSiPlus1 - x)) / np.power(NiPlus1, 3)) + (((ySi - y) * (xSi - x)) / np.power(Ni, 3)) #equivalent to DXiDy (partial of Xi with respect to y)
 
 def DXiDz(NiPlus1, xSiPlus1, zSiPlus1, Ni, xSi, zSi, x, z):
-    return -((xSiPlus1 - x) * (zSiPlus1 - z))/(NiPlus1^3) + ((xSi - x) * (zSi - z))/(Ni^3) #equivalent to DZiDx
+    return -(((xSiPlus1 - x) * (zSiPlus1 - z)) / np.power(NiPlus1, 3)) + (((xSi - x) * (zSi - z)) / np.power(Ni, 3)) #equivalent to DZiDx
 
 def DYiDy(NiPlus1, ySiPlus1, Ni, ySi, y):
-    return ((NiPlus1^2) - (ySiPlus1 - y)^2)/(NiPlus1^3) - ((Ni^2) - (ySi - y)^2)/(Ni^3)
+    return ((np.power(NiPlus1, 2) - np.power(ySiPlus1 - y, 2)) / np.power(NiPlus1, 3)) - ((np.power(Ni, 2) - np.power(ySi - y, 2)) / np.power(Ni, 3))
 
 def DYiDz(NiPlus1, ySiPlus1, zSiPlus1, Ni, ySi, zSi, y, z):
-    return -((ySiPlus1 - y) * (zSiPlus1 - z))/(NiPlus1^3) + ((ySi - y) * (zSi - z))/(Ni^3) #equivalent to DZiDy
+    return -(((ySiPlus1 - y) * (zSiPlus1 - z)) / np.power(NiPlus1, 3)) + (((ySi - y) * (zSi - z)) / np.power(Ni, 3)) #equivalent to DZiDy
 
 def DZiDz(NiPlus1, zSiPlus1, Ni, zSi, z):
-    return ((NiPlus1^2) - (zSiPlus1 - z)^2)/(NiPlus1^3) - ((Ni^2) - (zSi - z)^2)/(Ni^3)
+    return ((np.power(NiPlus1, 2) - np.power(zSiPlus1 - z, 2)) / np.power(NiPlus1, 3)) - ((np.power(Ni, 2) - np.power(zSi - z, 2)) / np.power(Ni, 3))
     
 main()
