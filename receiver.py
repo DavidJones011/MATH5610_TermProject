@@ -5,8 +5,6 @@ import os
 import re
 
 def main() :
-    # set the decimal place for calculations
-    mp.mp.dps = 17
     # create and set global variables
     global pi, s, c, r
     pi, s, c, r = getData()
@@ -24,20 +22,21 @@ def main() :
         x_i = x_0
 
         # newtons method to find the vehicle location
-        for k in range (0, max_iterations) :   
-            F, J_inv = test(x_i, sattellites, startIndex, count)
+        for k in range (0, max_iterations) :
+            F, J_inv = calcF_Jinv(x_i, sattellites, startIndex, count)
             s_i = np.linalg.solve(J_inv, -F)
             x_ip1 = x_i + s_i
             diff = x_ip1 - x_i
             x_i = x_ip1
-            if(abs(np.linalg.norm(diff)) < threshold) :
+            if(abs(np.linalg.norm(diff)) < 0.01) :
                 break
             pass
 
         # get t_v
-        t_v = (np.linalg.norm(sattellites[startIndex][2] - x_i) / c) + sattellites[startIndex][1]
+        t_v = (np.linalg.norm(sattellites[startIndex+1][2] - x_i) / c) + sattellites[startIndex][1]
+
         # get geodesic coords
-        h, lambda_d, lambda_m, lambda_s, phi_d, phi_m, phi_s, NS, EW = cartesianToGeodesic(x_0, t_v)
+        h, lambda_d, lambda_m, lambda_s, phi_d, phi_m, phi_s, NS, EW = cartesianToGeodesic(x_i)
         sys.stdout.write("{} {} {} {} {} {} {} {} {} {}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
         output_file.write("{} {} {} {} {} {} {} {} {} {}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
         pass
@@ -119,40 +118,35 @@ def readSatelliteData() :
     return satellites, startIndices
 
 #
-def test(x, satellites, startIndex, count) :
-
+def calcF_Jinv(x, satellites, startIndex, count) :
     #initialize local variables
-    DFdx = 0.0
-    DFdy = 0.0
-    DFdz = 0.0
-
+    F = np.array([0.0, 0.0, 0.0])
     J_inv = np.array([[0.0, 0.0, 0.0],
                       [0.0, 0.0, 0.0],
                       [0.0, 0.0, 0.0]])
 
     for i in range(0, count-1) :
-        diff = satellites[i][2] - x
-        diff2 = satellites[i+1][2] - x
+        index = startIndex + i
+        diff = satellites[index][2] - x
+        diff2 = satellites[index+1][2] - x
 
         N_i = np.linalg.norm(diff)
         N_ip1 = np.linalg.norm(diff2)
-        Ai = N_ip1 - N_i - (c * (satellites[i][1] - satellites[i+1][1]))
+        Ai = N_ip1 - N_i - (c * (satellites[index][1] - satellites[index+1][1]))
         Xi = -(diff2[0]/N_ip1) + (diff[0]/N_i)
         Yi = -(diff2[1]/N_ip1) + (diff[1]/N_i)
         Zi = -(diff2[2]/N_ip1) + (diff[2]/N_i)
 
-        s_i = satellites[i][2]
-        s_ip1 = satellites[i+1][2]
+        s_i = satellites[index][2]
+        s_ip1 = satellites[index+1][2]
         DXidx = DXiDx(N_ip1, s_ip1[0], N_i, s_i[0], x[0])
-        DXidy = DYidx = DYiDx(N_ip1, s_ip1[1], s_ip1[0], N_i, s_i[1], s_i[0], x[0], x[1])
-        DXidz = DZidx = DXiDz(N_ip1, s_ip1[0], s_ip1[2], N_i, s_i[0], s_i[2], x[0], x[2])
+        DXidy = DYiDx(N_ip1, s_ip1[1], s_ip1[0], N_i, s_i[1], s_i[0], x[0], x[1])
+        DXidz = DXiDz(N_ip1, s_ip1[0], s_ip1[2], N_i, s_i[0], s_i[2], x[0], x[2])
         DYidy = DYiDy(N_ip1, s_ip1[1], N_i, s_i[1], x[1])
-        DYidz = DZidy = DYiDz(N_ip1, s_ip1[1], s_ip1[2], N_i, s_i[1], s_i[2], x[1], x[2])
+        DYidz = DYiDz(N_ip1, s_ip1[1], s_ip1[2], N_i, s_i[1], s_i[2], x[1], x[2])
         DZidz = DZiDz(N_ip1, s_ip1[2], N_i, s_i[2], x[2])
 
-        DFdx += Ai * Xi
-        DFdy += Ai * Yi
-        DFdz += Ai * Zi
+        F += np.array([Ai * Xi, Ai * Yi, Ai * Zi])
 
         J_inv += np.array([[(Xi * Xi) + (Ai * DXidx), (Xi * Yi) + (Ai * DXidy), (Xi * Zi) + (Ai * DXidz)],
                           [(Xi * Yi) + (Ai * DXidy), (Yi * Yi) + (Ai * DYidy), (Yi * Zi) + (Ai * DYidz)],
@@ -160,14 +154,11 @@ def test(x, satellites, startIndex, count) :
 
         pass
 
-    F = np.array([2 * DFdx, 2 * DFdy, 2 * DFdz])
-    J_inv = J_inv * 2
+    F = F * 2.0
+    J_inv = J_inv * 2.0
     return F, J_inv
 
-def cartesianToGeodesic(x, t_v) :
-
-    x = rotate(x, t_v)
-
+def cartesianToGeodesic(x) :
     #calculate the height
     h = np.float64(np.linalg.norm(x) - r)
 
@@ -176,11 +167,11 @@ def cartesianToGeodesic(x, t_v) :
     phi = np.float64(0.0)
     if(sq_dst != 0.0) :
         phi = np.arctan2(x[2], np.sqrt(sq_dst))
-    else :
+    elif x[0] == x[1] and x[0] == 0.0:
         if(x[2] > 0.0) :
             phi = pi / 2.0
         elif(x[2] < 0.0) :
-            phi = -pi / 2
+            phi = -pi / 2.0
 
     # calculate lambda
     lamb = np.float64(0.0)
@@ -196,8 +187,9 @@ def cartesianToGeodesic(x, t_v) :
     phi = 180.0 * phi / pi
 
     # get geodesic coords for lambda
-    EW = int(np.sign(np.dot(rotate(np.array([1, 0, 0]), t_v), np.array([x[0], x[1], 0.0]))))
-    lamb = 180.0 - lamb if (EW < 0) else 360.0 + lamb 
+    fwd = np.array([1.0, 0.0, 0.0])
+    EW = int(np.sign(np.dot(fwd, np.array([x[0], x[1], 0.0]))))
+    lamb = 180.0 - lamb if (EW < 0) else lamb
     lambda_d = int(lamb)
     lamb = (lamb - lambda_d) * 60.0
     lambda_m = int(lamb)
