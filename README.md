@@ -9,4 +9,4 @@ it to the receiver where the data is communicated to the operator of the vehicle
 longitude and latitude coordinates.
 
 To aid the reader's understanding, we have also included the file from the assingment which includes all the prompts and mathematical reasoning (*see hw01_tp.pdf). We were tasked with doing the mathematics
-and setting up the equations by hand, and then translating the equations into code, in our case, Python --> Unix.
+and setting up the equations by hand, and then translating the equations into code. We wrote the project in Python then ran it through our school's system running Unix.
