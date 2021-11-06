@@ -17,14 +17,16 @@ def main() :
     for i in range(0, numPositions) :
         startIndex = startIndicies[i]
         count = startIndicies[i+1] - startIndex
-        threshold = np.float64(0.01 / c)
         x_0 = rotate(np.array([-1795225.28, -4477174.36, 4158593.45]), sattellites[startIndex][1])
         x_i = x_0
 
         # newtons method to find the vehicle location
         for k in range (0, max_iterations) :
             F, J_inv = calcF_Jinv(x_i, sattellites, startIndex, count)
-            s_i = np.linalg.solve(J_inv, -F)
+            try:
+                s_i = np.linalg.solve(J_inv, -F)
+            except np.linalg.LinAlgError as err:
+                break
             x_i = x_i + s_i
             if(abs(np.linalg.norm(s_i)) < 0.01) :
                 break
@@ -32,8 +34,6 @@ def main() :
 
         # get t_v
         t_v = (np.linalg.norm(x_i - sattellites[startIndex][2]) / c) + sattellites[startIndex][1]
-
-        fwd = rotate(np.array([1.0, 0.0, 0.0]), t_v)
 
         # get geodesic coords
         h, lambda_d, lambda_m, lambda_s, phi_d, phi_m, phi_s, NS, EW = cartesianToGeodesic(rotate(x_i, -t_v))
@@ -46,10 +46,6 @@ def main() :
 
 # grab data from data.dat in local folder
 def getData() :
-    # initialize satellite data
-    #satellites = list()
-    #for i in range(0, 24):
-    #    satellites.append([[0,0,0],[0,0,0],0,0,0])
 
     data_file = open(os.path.join(sys.path[0], 'data.dat'), "r")
 
@@ -101,9 +97,6 @@ def readSatelliteData() :
         cur_satellite[0] = int(tokens[0])
         cur_satellite[1] = np.float64(tokens[1])
         cur_satellite[2] = np.array([np.float64(tokens[2]), np.float64(tokens[3]), np.float64(tokens[4])])
-        #cur_satellite[2][0] = mp.mpf(tokens[2])
-        #cur_satellite[2][1] = mp.mpf(tokens[3])
-        #cur_satellite[2][2] = mp.mpf(tokens[4])
         satellites.append(cur_satellite)
 
         # found a new set of satellites for a new position
@@ -117,7 +110,7 @@ def readSatelliteData() :
     startIndices.append(len(satellites))
     return satellites, startIndices
 
-#
+# grabs F(x) and the inverse Jacobian(x)
 def calcF_Jinv(x, satellites, startIndex, count) :
     #initialize local variables
     F = np.array([0.0, 0.0, 0.0])
@@ -159,20 +152,22 @@ def calcF_Jinv(x, satellites, startIndex, count) :
     J_inv = J_inv * 2.0
     return F, J_inv
 
+# converts cartesian coordinate to geodesic
+# assumes that time is 0
 def cartesianToGeodesic(x) :
     #calculate the height
     h = np.float64(np.linalg.norm(x) - r)
 
     # calculate phi
     sq_dst = np.power(x[0], 2) + np.power(x[1], 2)
-    phi = np.float64(0.0)
+    psi = np.float64(0.0)
     if(sq_dst != 0.0) :
-        phi = np.arctan2(x[2], np.sqrt(sq_dst))
+        psi = np.arctan2(x[2], np.sqrt(sq_dst))
     elif x[0] == x[1] and x[0] == 0.0:
         if(x[2] > 0.0) :
-            phi = pi / 2.0
+            psi = pi / 2.0
         elif(x[2] < 0.0) :
-            phi = -pi / 2.0
+            psi = -pi / 2.0
 
     # calculate lambda
     lamb = np.float64(0.0)
@@ -185,7 +180,7 @@ def cartesianToGeodesic(x) :
 
     # convert to degrees
     lamb = 180.0 * lamb / pi
-    phi = 180.0 * phi / pi
+    psi = 180.0 * psi / pi
 
     # get geodesic coords for lambda
     EW = int(np.sign(np.dot(np.array([1.0, 0.0, 0.0]), np.array([x[0], x[1], 0.0]))))
@@ -197,74 +192,16 @@ def cartesianToGeodesic(x) :
     lambda_s = lamb * 60.0
 
     # get geodesic coords for phi
-    NS = 1 if (phi >= 0) else -1
-    phi_d = int(phi)
-    phi = (phi - phi_d) * 60.0
-    phi_m = int(phi)
-    phi = phi - phi_m
-    phi_s = phi * 60.0
+    NS = 1 if (psi >= 0) else -1
+    psi_d = int(psi)
+    psi = (psi - psi_d) * 60.0
+    psi_m = int(psi)
+    psi = psi - psi_m
+    psi_s = psi * 60.0
 
-    return h, lambda_d, lambda_m, lambda_s, phi_d, phi_m, phi_s, NS, EW
+    return h, lambda_d, lambda_m, lambda_s, psi_d, psi_m, psi_s, NS, EW
 
-# 
-def calculateFirstOrderPartDeriv(x, satellites, startIndex, count) :
-    vec = [mp.mpf(0.0),mp.mpf(0.0),mp.mpf(0.0)]
-    for i in range(0,count-1) :
-        index = startIndex + i
-        n_i = magnitude(subVectors(satellites[index][2], x))
-        n_iplus1 = magnitude(subVectors(satellites[index+1][2], x))
-        a_i = n_iplus1 - n_i - c * (satellites[index][1] - satellites[index+1][1])
-        df = addVectors(invScaleVector(-n_iplus1, subVectors(satellites[index+1], x)), invScaleVector(n_i, subVectors(satellites[index][2], x)))
-        df = scaleVector(a_i, df)
-        vec = addVectors(vec, df)
-
-    vec = scaleVector(2, vec)
-    return np.array([vec[0], vec[1], vec[2]])
-
-#
-def calculateSecOrderPartDeriv(x, satellites, startIndex, count) :
-    for i in range(0,count-1) :
-        index = startIndex + i
-        n_i = magnitude(subVectors(satellites[index][2], x))
-        n_iplus1 = magnitude(subVectors(satellites[index+1][2], x))
-        DXidx = DXiDx(n_iplus1, satellites[index+1][2][0], n_i, satellites[index][2][0], x[0])
-        DXidy = DYidx = DYiDx(n_iplus1, satellites[index+1][2][1], satellites[index+1][2][0], n_i, satellites[index][2][1], satellites[index][2][0], x[0], x[1])
-        DXidz = DZidx = DXiDz(n_iplus1, satellites[index+1][2][0], satellites[index+1][2][2], n_i, satellites[index][2][0], satellites[index][2][2], x[0], x[2])
-        DYidy = DYiDy(n_iplus1, satellites[index+1][2][1], n_i, satellites[index][2][1], x[1])
-    return np.array([DXidx, DXidy, DXidz],
-                    [DYidx, DYidy, DYidz],
-                    [DZidx, DZidy, DZidz])
-
-# returns the magnitude of u
-def magnitude(u):
-    return mp.sqrt((u[0] * u[0]) + (u[1] * u[1]) + (u[2] * u[2]))
-
-# returns the dot product of two vectors u and v
-def dotProduct(u, v) :
-    return (u[0] * v[0]) + (u[1] * v[1]) + (u[2] * v[2])
-
-# adds two vectors
-def addVectors(u,v) :
-    return [u[0] + v[0], u[1] + v[1], u[2] + v[2]]
-
-# subtracts two vectors
-def subVectors(u,v) :
-    return [u[0] - v[0], u[1] - v[1], u[2] - v[2]]
-
-# returns a vector that is scaled by the scalar
-def scaleVector(scale, vec) :
-    x = mp.mpf(vec[0] * mp.mpf(scale))
-    y = mp.mpf(vec[1] * mp.mpf(scale))
-    z = mp.mpf(vec[2] * mp.mpf(scale))
-    return [x, y, z]
-
-# returns a vector that is scaled by the inverse of the scalar
-def invScaleVector(scale, vec) :
-    x = mp.mpf(vec[0] / mp.mpf(scale))
-    y = mp.mpf(vec[1] / mp.mpf(scale))
-    z = mp.mpf(vec[2] / mp.mpf(scale))
-    return [x, y, z]
-
+# rotates a vector along the z-axis
 def rotate(u, t_v) :
     time_offset = (2*pi*t_v) / s
     v = np.array([(np.cos(time_offset) * u[0]) + (-np.sin(time_offset) * u[1]),
