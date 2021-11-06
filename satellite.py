@@ -8,8 +8,35 @@ def main() :
     # create and set global variables
     global pi, s, c, r
     pi, s, c, r, satellites = getData()
+    vehicles = getVehcileData()
 
     output_file = open(os.path.join(sys.path[0], 'satellite.log'), "w")
+
+    for v in vehicles :
+        # get the cartesian coordinates of the vehicle
+        latitude = degreeToRad(v[1], v[2], v[3], v[4])
+        longitude = degreeToRad(v[5], v[6], v[7], v[8])
+        x_v = sphericalToCartesian(r + v[9], longitude, latitude)
+        x_v = rotate(x_v, v[0])
+
+        dot_x_v = np.dot(x_v,x_v)
+
+        for i in range(0,24) :
+            # use newtons method to find satellite position and time
+            x_s, t_s = satelliteTimeAndLocOnSend(satellites, i, x_v, v[0])
+
+            if np.dot(x_v, x_s) > dot_x_v :
+                output_file.write("{} {} {} {} {}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
+                sys.stdout.write("{} {} {} {} {}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
+            
+
+    output_file.close()
+    pass
+
+# grab the vehicle position/time data
+def getVehcileData() :
+
+    vehicles = list()
 
     for line in sys.stdin :
         if line == '':
@@ -21,36 +48,20 @@ def main() :
             break
 
         #store the tokenized data into the correct data types
-        t_v      = np.float64(tokens[0])
-        psi_d    = int(tokens[1])
-        psi_m    = int(tokens[2])
-        psi_s    = np.float64(tokens[3])
-        ns_value = int(tokens[4])
-        lambda_d = int(tokens[5])
-        lambda_m = int(tokens[6])
-        lambda_s = np.float64(tokens[7])
-        ew_value = int(tokens[8])
-        altitude = np.float64(tokens[9])
+        cur_vehicle = [0.0, 0, 0, 0.0, 0, 0, 0, 0.0, 0, 0.0]
+        cur_vehicle[0] = np.float64(tokens[0])    # t_v
+        cur_vehicle[1] = int(tokens[1])           # psi_d
+        cur_vehicle[2] = int(tokens[2])           # psi_m
+        cur_vehicle[3] = np.float64(tokens[3])    # psi_s
+        cur_vehicle[4] = int(tokens[4])           # NS
+        cur_vehicle[5] = int(tokens[5])           # lambda_d
+        cur_vehicle[6] = int(tokens[6])           # lambda_m
+        cur_vehicle[7] = np.float64(tokens[7])    # lambda_s
+        cur_vehicle[8] = int(tokens[8])           # EW
+        cur_vehicle[9] = np.float64(tokens[9])    # altitude
+        vehicles.append(cur_vehicle)
 
-        # get the cartesian coordinates of the vehicle
-        latitude = degreeToRad(psi_d, psi_m, psi_s, ns_value)
-        longitude = degreeToRad(lambda_d, lambda_m, lambda_s, ew_value)
-        x_v = sphericalToCartesian(r + altitude, longitude, latitude)
-        x_v = rotate(x_v, t_v)
-
-        dot_x_v = np.dot(x_v,x_v)
-
-        for i in range(0,24) :
-            # use newtons method to find satellite position and time
-            x_s, t_s = satelliteTimeAndLocOnSend(satellites, i, x_v, t_v)
-
-            if np.dot(x_v, x_s) > dot_x_v :
-                output_file.write("{} {} {} {} {}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
-                sys.stdout.write("{} {} {} {} {}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
-            
-
-    output_file.close()
-    pass
+    return vehicles
 
 # grab data from data.dat in local folder
 def getData() :

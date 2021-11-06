@@ -17,8 +17,7 @@ def main() :
     for i in range(0, numPositions) :
         startIndex = startIndicies[i]
         count = startIndicies[i+1] - startIndex
-        x_0 = rotate(np.array([-1795225.28, -4477174.36, 4158593.45]), sattellites[startIndex][1])
-        x_i = x_0
+        x_i = rotate(np.array([-1795225.28, -4477174.36, 4158593.45]), sattellites[startIndex][1])
 
         # newtons method to find the vehicle location
         for k in range (0, max_iterations) :
