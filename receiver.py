@@ -18,25 +18,25 @@ def main() :
         startIndex = startIndicies[i]
         count = startIndicies[i+1] - startIndex
         threshold = np.float64(0.01 / c)
-        x_0 = np.array([-1795225.28, -4477174.36, 4158593.45])
+        x_0 = rotate(np.array([-1795225.28, -4477174.36, 4158593.45]), sattellites[startIndex][1])
         x_i = x_0
 
         # newtons method to find the vehicle location
         for k in range (0, max_iterations) :
             F, J_inv = calcF_Jinv(x_i, sattellites, startIndex, count)
             s_i = np.linalg.solve(J_inv, -F)
-            x_ip1 = x_i + s_i
-            diff = x_ip1 - x_i
-            x_i = x_ip1
-            if(abs(np.linalg.norm(diff)) < 0.01) :
+            x_i = x_i + s_i
+            if(abs(np.linalg.norm(s_i)) < 0.01) :
                 break
             pass
 
         # get t_v
-        t_v = (np.linalg.norm(sattellites[startIndex+1][2] - x_i) / c) + sattellites[startIndex][1]
+        t_v = (np.linalg.norm(x_i - sattellites[startIndex][2]) / c) + sattellites[startIndex][1]
+
+        fwd = rotate(np.array([1.0, 0.0, 0.0]), t_v)
 
         # get geodesic coords
-        h, lambda_d, lambda_m, lambda_s, phi_d, phi_m, phi_s, NS, EW = cartesianToGeodesic(x_i)
+        h, lambda_d, lambda_m, lambda_s, phi_d, phi_m, phi_s, NS, EW = cartesianToGeodesic(rotate(x_i, -t_v))
         sys.stdout.write("{} {} {} {} {} {} {} {} {} {}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
         output_file.write("{} {} {} {} {} {} {} {} {} {}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
         pass
@@ -132,6 +132,7 @@ def calcF_Jinv(x, satellites, startIndex, count) :
 
         N_i = np.linalg.norm(diff)
         N_ip1 = np.linalg.norm(diff2)
+
         Ai = N_ip1 - N_i - (c * (satellites[index][1] - satellites[index+1][1]))
         Xi = -(diff2[0]/N_ip1) + (diff[0]/N_i)
         Yi = -(diff2[1]/N_ip1) + (diff[1]/N_i)
@@ -187,8 +188,7 @@ def cartesianToGeodesic(x) :
     phi = 180.0 * phi / pi
 
     # get geodesic coords for lambda
-    fwd = np.array([1.0, 0.0, 0.0])
-    EW = int(np.sign(np.dot(fwd, np.array([x[0], x[1], 0.0]))))
+    EW = int(np.sign(np.dot(np.array([1.0, 0.0, 0.0]), np.array([x[0], x[1], 0.0]))))
     lamb = 180.0 - lamb if (EW < 0) else lamb
     lambda_d = int(lamb)
     lamb = (lamb - lambda_d) * 60.0
@@ -310,7 +310,7 @@ def rotate(u, t_v) :
 
 # just writing the first order partials as seen in equation (73) on hw01
 def DXiDx(NiPlus1, xSiPlus1, Ni, xSi, x):
-    return ((np.power(NiPlus1, 3) - np.power(xSiPlus1 - x, 2)) / np.power(NiPlus1, 3)) - ((np.power(Ni,2) - np.power(xSi - x, 2)) / np.power(Ni, 3))
+    return ((np.power(NiPlus1, 2) - np.power(xSiPlus1 - x, 2)) / np.power(NiPlus1, 3)) - ((np.power(Ni,2) - np.power(xSi - x, 2)) / np.power(Ni, 3))
 
 def DYiDx(NiPlus1, ySiPlus1, xSiPlus1, Ni, ySi, xSi, x, y):
     return -(((ySiPlus1 - y) * (xSiPlus1 - x)) / np.power(NiPlus1, 3)) + (((ySi - y) * (xSi - x)) / np.power(Ni, 3)) #equivalent to DXiDy (partial of Xi with respect to y)
