@@ -40,7 +40,7 @@ def main() :
         dist = round(np.linalg.norm(tLoc - oLoc), 2)
 
         if(dist > 0.001) :
-            sys.stdout.write("Vehicle locations differ further than a centimeter! Line: {}\n".format(i))
+            sys.stdout.write("Vehicle locations differ further than a centimeter! Line: {}\n".format(i+1))
             success = False
             break
 
@@ -49,7 +49,7 @@ def main() :
 
         # could test for accuracy in seconds
         if(tTime - oTime > 0.001) :
-            sys.stdout.write("Vehcile position times differ too much! Line: {}\n".format(i))
+            sys.stdout.write("Vehcile position times differ too much! Line: {}\n".format(i+1))
             success = False
             break
 

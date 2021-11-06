@@ -180,17 +180,21 @@ def cartesianToGeodesic(x) :
     lamb = np.float64(0.0)
     if(x[0] > 0.0 and x[1] > 0.0) :
         lamb = np.arctan2(x[1], x[0])
+    elif(x[0] > 0.0 and x[1] < 0.0) :
+        t =np.arctan2(x[1], x[0])
+        lamb = (2 * pi) + np.arctan2(x[1], x[0])
     elif(x[0] < 0.0) :
         lamb = pi + np.arctan2(x[1], x[0])
-    elif(x[0] > 0.0 and x[1] < 0.0) :
-        lamb = (2 * pi) + np.arctan2(x[1], x[0])
+
+    if(lamb > pi) : 
+        lamb = lamb - pi      
 
     # convert to degrees
     lamb = 180.0 * lamb / pi
     psi = 180.0 * psi / pi
 
     # get geodesic coords for lambda
-    EW = int(np.sign(np.dot(np.array([1.0, 0.0, 0.0]), np.array([x[0], x[1], 0.0]))))
+    EW = int(np.sign(np.dot(np.array([0.0, 1.0, 0.0]), np.array([x[0], x[1], 0.0]))))
     lamb = 180.0 - lamb if (EW < 0) else lamb
     lambda_d = int(lamb)
     lamb = (lamb - lambda_d) * 60.0
