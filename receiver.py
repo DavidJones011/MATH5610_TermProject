@@ -1,3 +1,11 @@
+###########################################################
+# 
+# Description
+#
+# Author(s): David Jones, Preston , Leela
+#
+###########################################################
+
 import sys
 import mpmath as mp
 import numpy as np
