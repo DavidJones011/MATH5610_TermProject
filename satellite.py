@@ -2,7 +2,6 @@ import sys
 import os
 import re
 import numpy as np
-from numpy import linalg
 
 def main() :
     # create and set global variables

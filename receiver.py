@@ -12,7 +12,7 @@ def main() :
     numPositions = len(startIndicies) - 1
     max_iterations = 200
 
-    output_file = open(os.path.join(sys.path[0], 'satellite.log'), "w")
+    output_file = open(os.path.join(sys.path[0], 'receiver.log'), "w")
 
     for i in range(0, numPositions) :
         startIndex = startIndicies[i]

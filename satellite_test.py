@@ -38,19 +38,19 @@ def main() :
         tLoc = thisSatellites[i][2]
         oLoc = otherSatellites[i][2]
 
-        if(np.linalg.norm(tLoc - oLoc) > 0.01) :
+        if(round(np.linalg.norm(tLoc - oLoc), 2) > 0.001) :
             sys.stdout.write("Satellite locations differ further than a centimeter! {} and {}\n".format(tIndex, oIndex))
             success = False
             break
 
-        #tTime = thisSatellites[i][1]
-        #oTime = otherSatellites[i][1]
+        tTime = round(thisSatellites[i][1], 2)
+        oTime = round(otherSatellites[i][1], 2)
 
         # could test for accuracy in seconds
-        #if(abs(tTime - oTime) <= 1E-11) :
-        #    sys.stdout.write("Satellite times differ too much! {} and {}\n".format(tIndex, oIndex))
-        #    success = False
-        #    break
+        if(tTime - oTime > 0.001) :
+            sys.stdout.write("Satellite times differ too much! {} and {}\n".format(tIndex, oIndex))
+            success = False
+            break
 
         pass
 
