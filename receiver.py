@@ -16,36 +16,40 @@ def main() :
     # create and set global variables
     global pi, s, c, r
     pi, s, c, r = getData()
-    sattellites, startIndicies = readSatelliteData()
+    satellites, startIndicies = readSatelliteData()
     numPositions = len(startIndicies) - 1
     max_iterations = 200
 
     output_file = open(os.path.join(sys.path[0], 'receiver.log'), "w")
 
+    # x_0, position in salt lake city at the first satellites signal time
+    x_i = rotate(np.array([-1795225.28, -4477174.36, 4158593.45]), satellites[0][1])
+
     for i in range(0, numPositions) :
+
         startIndex = startIndicies[i]
         count = startIndicies[i+1] - startIndex
-        x_i = rotate(np.array([-1795225.28, -4477174.36, 4158593.45]), sattellites[startIndex][1])
 
-        # newtons method to find the vehicle location
+        # Newton's method to find the approx. vehicle position/time
         for k in range (0, max_iterations) :
-            F, J_inv = calcF_Jinv(x_i, sattellites, startIndex, count)
+            F, J_inv = calcF_Jinv(x_i, satellites, startIndex, count)
             try:
                 s_i = np.linalg.solve(J_inv, -F)
             except np.linalg.LinAlgError as err:
+                # matrix could be singular, just exit out early
                 break
             x_i = x_i + s_i
-            if(abs(np.linalg.norm(s_i)) < 0.01) :
+            if(np.linalg.norm(s_i) < 0.01) :
                 break
             pass
 
         # get t_v
-        t_v = (np.linalg.norm(x_i - sattellites[startIndex][2]) / c) + sattellites[startIndex][1]
+        t_v = (np.linalg.norm(x_i - satellites[startIndex][2]) / c) + satellites[startIndex][1]
 
         # get geodesic coords
         h, lambda_d, lambda_m, lambda_s, phi_d, phi_m, phi_s, NS, EW = cartesianToGeodesic(rotate(x_i, -t_v))
-        sys.stdout.write("{} {} {} {} {} {} {} {} {} {}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
-        output_file.write("{} {} {} {} {} {} {} {} {} {}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
+        sys.stdout.write("{} {} {} {} {} {} {} {} {} {}\n".format(round(t_v,2), phi_d, phi_m, round(phi_s,2), NS, lambda_d, lambda_m, round(lambda_s,2), EW, round(h,2)))
+        output_file.write("{} {} {} {} {} {} {} {} {} {}\n".format(round(t_v,2), phi_d, phi_m, round(phi_s,2), NS, lambda_d, lambda_m, round(lambda_s,2), EW, round(h,2)))
         pass
 
     output_file.close()
@@ -119,27 +123,37 @@ def readSatelliteData() :
 
 # grabs F(x) and the inverse Jacobian(x)
 def calcF_Jinv(x, satellites, startIndex, count) :
-    #initialize local variables
+
+    # only look at satellites that are above the horizon line
+    validSatellites = list()
+    x_dot = np.dot(x,x)
+    for i in range(0, count) :
+        s = satellites[startIndex + i]
+        if(np.dot(x, s[2]) > x_dot) :
+            validSatellites.append(s)
+    validCount = len(validSatellites)
+
+    # initialize local variables
     F = np.array([0.0, 0.0, 0.0])
     J_inv = np.array([[0.0, 0.0, 0.0],
                       [0.0, 0.0, 0.0],
                       [0.0, 0.0, 0.0]])
 
-    for i in range(0, count-1) :
-        index = startIndex + i
-        diff = satellites[index][2] - x
-        diff2 = satellites[index+1][2] - x
+    # calculate F and inverse of the Jacobian at location x
+    for i in range(0, validCount-1) :
+        diff = validSatellites[i][2] - x
+        diff2 = validSatellites[i+1][2] - x
 
         N_i = np.linalg.norm(diff)
         N_ip1 = np.linalg.norm(diff2)
 
-        Ai = N_ip1 - N_i - (c * (satellites[index][1] - satellites[index+1][1]))
+        Ai = N_ip1 - N_i - (c * (validSatellites[i][1] - validSatellites[i+1][1]))
         Xi = -(diff2[0]/N_ip1) + (diff[0]/N_i)
         Yi = -(diff2[1]/N_ip1) + (diff[1]/N_i)
         Zi = -(diff2[2]/N_ip1) + (diff[2]/N_i)
 
-        s_i = satellites[index][2]
-        s_ip1 = satellites[index+1][2]
+        s_i = validSatellites[i][2]
+        s_ip1 = validSatellites[i+1][2]
         DXidx = DXiDx(N_ip1, s_ip1[0], N_i, s_i[0], x[0])
         DXidy = DYiDx(N_ip1, s_ip1[1], s_ip1[0], N_i, s_i[1], s_i[0], x[0], x[1])
         DXidz = DXiDz(N_ip1, s_ip1[0], s_ip1[2], N_i, s_i[0], s_i[2], x[0], x[2])
@@ -160,12 +174,13 @@ def calcF_Jinv(x, satellites, startIndex, count) :
     return F, J_inv
 
 # converts cartesian coordinate to geodesic
-# assumes that time is 0
+# assumes time is 0
 def cartesianToGeodesic(x) :
+
     #calculate the height
     h = np.float64(np.linalg.norm(x) - r)
 
-    # calculate phi
+    # calculate psi
     sq_dst = np.power(x[0], 2) + np.power(x[1], 2)
     psi = np.float64(0.0)
     if(sq_dst != 0.0) :
@@ -181,7 +196,6 @@ def cartesianToGeodesic(x) :
     if(x[0] > 0.0 and x[1] > 0.0) :
         lamb = np.arctan2(x[1], x[0])
     elif(x[0] > 0.0 and x[1] < 0.0) :
-        t =np.arctan2(x[1], x[0])
         lamb = (2 * pi) + np.arctan2(x[1], x[0])
     elif(x[0] < 0.0) :
         lamb = pi + np.arctan2(x[1], x[0])
@@ -202,8 +216,9 @@ def cartesianToGeodesic(x) :
     lamb -= lambda_m
     lambda_s = lamb * 60.0
 
-    # get geodesic coords for phi
+    # get geodesic coords for psi
     NS = 1 if (psi >= 0) else -1
+    psi = abs(psi)
     psi_d = int(psi)
     psi = (psi - psi_d) * 60.0
     psi_m = int(psi)

@@ -37,7 +37,8 @@ def main() :
 
         tLoc = sphericalToCartesian(tVehicle[9], t_lamb, t_psi)
         oLoc = sphericalToCartesian(tVehicle[9], o_lamb, o_psi)
-        dist = round(np.linalg.norm(tLoc - oLoc), 2)
+        diff = tLoc - oLoc
+        dist = round(np.linalg.norm(diff), 2)
 
         if(dist > 0.001) :
             sys.stdout.write("Vehicle locations differ further than a centimeter! Line: {}\n".format(i+1))
