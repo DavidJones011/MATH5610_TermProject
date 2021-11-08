@@ -48,8 +48,8 @@ def main() :
 
         # get geodesic coords
         h, lambda_d, lambda_m, lambda_s, phi_d, phi_m, phi_s, NS, EW = cartesianToGeodesic(rotate(x_i, -t_v))
-        sys.stdout.write("{} {} {} {} {} {} {} {} {} {}\n".format(round(t_v,2), phi_d, phi_m, round(phi_s,2), NS, lambda_d, lambda_m, round(lambda_s,2), EW, round(h,2)))
-        output_file.write("{} {} {} {} {} {} {} {} {} {}\n".format(round(t_v,2), phi_d, phi_m, round(phi_s,2), NS, lambda_d, lambda_m, round(lambda_s,2), EW, round(h,2)))
+        sys.stdout.write("{:.3f} {} {} {:.3f} {} {} {} {} {:.3f} {:.3f}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
+        output_file.write("{:.3f} {} {} {:.3f} {} {} {} {} {:.3f} {:.3f}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
         pass
 
     output_file.close()

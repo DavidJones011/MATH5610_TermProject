@@ -33,8 +33,8 @@ def main() :
             x_s, t_s = satelliteTimeAndLocOnSend(satellites, i, x_v, v[0])
 
             if np.dot(x_v, x_s) > dot_x_v :
-                output_file.write("{} {} {} {} {}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
-                sys.stdout.write("{} {} {} {} {}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
+                output_file.write("{} {} {:.15e} {:.15e} {:.15e}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
+                sys.stdout.write("{} {} {:.15e} {:.15e} {:.15e}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
             
 
     output_file.close()
