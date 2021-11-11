@@ -47,9 +47,9 @@ def main() :
         t_v = (np.linalg.norm(x_i - satellites[startIndex][2]) / c) + satellites[startIndex][1]
 
         # get geodesic coords
-        h, lambda_d, lambda_m, lambda_s, phi_d, phi_m, phi_s, NS, EW = cartesianToGeodesic(rotate(x_i, -t_v))
-        sys.stdout.write("{:.3f} {} {} {:.3f} {} {} {} {} {:.3f} {:.3f}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
-        output_file.write("{:.3f} {} {} {:.3f} {} {} {} {} {:.3f} {:.3f}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
+        h, lambda_d, lambda_m, lambda_s, phi_d, phi_m, phi_s, NS, EW = cartesianToGeodesic(rotate(x_i, -t_v), 2)
+        sys.stdout.write("{:.2f} {} {} {:.3f} {} {} {} {:.2f} {} {:.2f}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
+        output_file.write("{:.2f} {} {} {:.3f} {} {} {} {:.2f} {} {:.2f}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
         pass
 
     output_file.close()
@@ -175,7 +175,8 @@ def calcF_Jinv(x, satellites, startIndex, count) :
 
 # converts cartesian coordinate to geodesic
 # assumes time is 0
-def cartesianToGeodesic(x) :
+# the seconds degree is rounded to the given digit
+def cartesianToGeodesic(x, digit) :
 
     #calculate the height
     h = np.float64(np.linalg.norm(x) - r)
@@ -214,7 +215,16 @@ def cartesianToGeodesic(x) :
     lamb = (lamb - lambda_d) * 60.0
     lambda_m = int(lamb)
     lamb -= lambda_m
-    lambda_s = lamb * 60.0
+    lambda_s = round(lamb * 60.0, digit)
+
+    # account for rounding the seconds degree in lambda
+    if abs(lambda_s - 60.0) < 0.00001 :
+        lambda_s = 0.0
+        lambda_m = lambda_m + 1
+
+    if lambda_m - 60 == 0 :
+        lambda_m = 0
+        lambda_d = lambda_d + 1
 
     # get geodesic coords for psi
     NS = 1 if (psi >= 0) else -1
@@ -223,7 +233,16 @@ def cartesianToGeodesic(x) :
     psi = (psi - psi_d) * 60.0
     psi_m = int(psi)
     psi = psi - psi_m
-    psi_s = psi * 60.0
+    psi_s = round(psi * 60.0, digit)
+
+    # account for rounding the seconds degree in psi
+    if abs(psi_s - 60.0) < 0.00001 :
+        psi_s = 0.0
+        psi_m = psi_m + 1
+    
+    if psi_m - 60 == 0 :
+        psi_m = 0
+        psi_d = psi_d + 1
 
     return h, lambda_d, lambda_m, lambda_s, psi_d, psi_m, psi_s, NS, EW
 
