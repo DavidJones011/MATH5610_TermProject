@@ -1,9 +1,12 @@
 ###########################################################
 # 
-# Description
+# This program reads vehicle locations/times and generates all positions/times 
+# of satellites that are considered above the horizon.
+# The mathematical approach came from homework 1. 
+# 
+# Author(s): David Jones, Preston Malen, Leela Feaster
 #
-# Author(s): David Jones, Preston , Leela
-#
+# This program was written for MATH5610 taught by professor Peter Alfield.
 ###########################################################
 
 import sys
@@ -177,29 +180,6 @@ def satelliteTimeAndLocOnSend(satellites, index, x_v, t_v) :
         prev_t = cur_t
 
     return getSatelliteLocation(satellites, index, best_t), best_t
-
-# returns a vector that is scaled
-#def scaleVector(scale, vec) :
-    x = vec[0] * scale
-    y = vec[1] * scale
-    z = vec[2] * scale
-    return [x, y, z]
-
-# returns the magnitude of u
-#def magnitude(u):
-    return mp.sqrt((u[0] * u[0]) + (u[1] * u[1]) + (u[2] * u[2]))
-
-# returns the dot product of two vectors u and v
-#def dotProduct(u, v) :
-    return (u[0] * v[0]) + (u[1] * v[1]) + (u[2] * v[2])
-
-# adds two vectors
-#def addVectors(u,v) :
-    return [u[0] + v[0], u[1] + v[1], u[2] + v[2]]
-
-# subtracts two vectors
-#def subVectors(u,v) :
-    return [u[0] - v[0], u[1] - v[1], u[2] - v[2]]
 
 # rotates a point along the z-axis
 def rotate(u, t_v) :

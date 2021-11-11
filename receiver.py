@@ -1,9 +1,12 @@
 ###########################################################
 # 
-# Description
+# This program reads satellites locations/times and generates an approximation
+# of a vehicle location on the globe.
+# The mathematical approach came from homework 1. 
 #
-# Author(s): David Jones, Preston , Leela
+# Author(s): David Jones, Preston Malen, Leela Feaster
 #
+# This program was written for MATH5610 taught by professor Peter Alfield.
 ###########################################################
 
 import sys
@@ -253,42 +256,6 @@ def rotate(u, t_v) :
                   (np.sin(time_offset) * u[0]) + (np.cos(time_offset) * u[1]),
                    u[2]])
     return v
-
-# creating the Jacobian J(x) as defined in exercise 13
-# we will use J(x) to solve the nonlinear system of 4 equations
-# there is probably an elegant way to automate the creation of the jacobian and append each element via a for loop
-
-#J = [[(xS1 - x)/magnitude(xS1 - x) - (xS2 - x)/magnitude(xS2 - x), (yS1 - y)/magnitude(xS1 - x) - (yS2 - y)/magnitude(xS2 - x), (zS1 - z)/magnitude(xS1 - x) - (zS2 - z)/magnitude(xS2 - x)],
-#     [(xS2 - x)/magnitude(xS2 - x) - (xS3 - x)/magnitude(xS3 - x), (yS2 - y)/magitude(xS2 - x) - (yS3 - y)/magnitude(xS3 - x), (zS2 - z)/magnitude(xS2 - x) - (zS3 - z)/magnitude(xS3 - x)],
-#     [(xS3 - x)/magnitude(xS3 - x) - (xS4 -x)/magnitude(xS4 - x), (yS3 - y)/magnitude(xS3 - x) - (yS4 - y)/magnitude(xS4 - x), (z3 - z)/magnitude(xS3 - x) - (z4 - z)/magnitude(xS4 - x)]]
-
-# we want to solve J(x^(k))s^(k) = -F(x^(k)) where x^(k+1) = x^(k) + s^(k)
-#
-#
-#
-#
-
-# creating derivatives as outlined in exercise 14
-# going to us xSi, can we refactor as needed and fill in for i such that i = 1,2,3,4...m-1?
-# iPlus1 --> i + 1, when referring to indices, not sure how we want assign values here, a function with a loop may be better?
-
-# initialize weird variables, then can loop through and update them accordinly
-#xSi = None
-#xSiPlus1 = None
-#ySi = None
-#ySiPlus1 = None
-#zSi = None
-#zSiPlus1 = None
-#tSi = None
-#tSiPlus1 = None
-#NiPlus1 = None
-
-# we make some generalizations here to make the first order partial derivatives easier to write
-#Ni = magnitude(xSi - x)
-#Ai = NiPlus1 - Ni - c(tSi - tSiPlus1)
-#Xi = -(xSiPlus1 - x)/(NiPlus1) + (xSi - x)/Ni
-#Yi = -(ySiPlus1 - y)/(NiPlus1) + (ySi - y)/Ni
-#Zi = -(zSiPlus1 - z)/(NiPlus1) + (zSi - z)/Ni
 
 # just writing the first order partials as seen in equation (73) on hw01
 def DXiDx(NiPlus1, xSiPlus1, Ni, xSi, x):
