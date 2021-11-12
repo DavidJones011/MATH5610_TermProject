@@ -8,9 +8,11 @@ Note: The NumPy library was used so it must be installed on the machine running 
 
 We tested and developed our code on David's personal computer and periodically ran it through the school's Unix system to ensure compatibility.
 
-                        c-jsdk@xserver.math.utah.edu
+                    c-jsdk@xserver.math.utah.edu
 
-To help ensure accurate results we used <satellite_test.py> and <receiver_test.py>. The two programs simply just compare two files and compare the locations and times. If locations on both files are within a centimeter, the test passes. If the times or locations differ too much, the test fails.
+To help ensure accurate results we used <satellite_test.py> and <receiver_test.py>. The two programs simply just compare two files and compare the locations and times. If locations on both files are within a centimeter, the test passes. If the times or locations differ too much, the test fails. You can test the two files by typing the file names with a space inbetween, like below.
+
+                   <this_file>.log <other_file>.log
 
 
 
