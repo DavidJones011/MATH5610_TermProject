@@ -22,7 +22,16 @@ def main() :
 
     output_file = open(os.path.join(sys.path[0], 'satellite.log'), "w")
 
+    printData(output_file, pi, s, c, r, satellites)
+
+    epoc = 0
     for v in vehicles :
+
+        # print vehicle data to log
+        output_file.write(" --- epoch = {}\n".format(epoc))
+        output_file.write("read: {} {} {} {} {} {} {} {} {} {}\n".format(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9]))
+        output_file.write("wrote:\n")
+
         # get the cartesian coordinates of the vehicle
         latitude = degreeToRad(v[1], v[2], v[3], v[4])
         longitude = degreeToRad(v[5], v[6], v[7], v[8])
@@ -38,6 +47,9 @@ def main() :
             if np.dot(x_v, x_s) > dot_x_v :
                 output_file.write("{} {} {:.15e} {:.15e} {:.15e}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
                 sys.stdout.write("{} {} {:.15e} {:.15e} {:.15e}\n".format(i, t_s, x_s[0], x_s[1], x_s[2]))
+
+        epoc = epoc + 1
+        output_file.write("\n")
             
 
     output_file.close()
@@ -124,6 +136,29 @@ def getData() :
 
     data_file.close()
     return pi, s, c, r, satellites
+
+# print the data that was gathered to output file
+def printData(output_file, pi, s, c, r, satellites) :
+
+    output_file.write(" data.dat:\n\n")
+    output_file.write("pi = {}\n".format(pi))
+    output_file.write("c = {}\n".format(c))
+    output_file.write("R = {}\n".format(r))
+    output_file.write("s = {}\n".format(s))
+
+    index = 0
+    for s in satellites :
+        output_file.write("-- satellite {} --\n".format(index))
+        output_file.write("u = <{}, {}, {}>\n".format(s[0][0], s[0][1], s[0][2]))
+        output_file.write("v = <{}, {}, {}>\n".format(s[1][0], s[1][1], s[1][2]))
+        output_file.write("period = {}\n".format(s[2]))
+        output_file.write("altitude = {}\n".format(s[3]))
+        output_file.write("phase = {}\n".format(s[4]))
+        index = index + 1
+        pass
+
+    output_file.write("\n end data.dat:\n\n\n")
+    pass
 
 # converts degree (geodesic) to radians
 def degreeToRad(angle, angle_minute, angle_second, dir_value) :

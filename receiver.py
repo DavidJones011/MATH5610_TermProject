@@ -25,6 +25,8 @@ def main() :
 
     output_file = open(os.path.join(sys.path[0], 'receiver.log'), "w")
 
+    printData(output_file, pi, s, c, r)
+
     # x_0, position in salt lake city at the first satellites signal time
     x_i = rotate(np.array([-1795225.28, -4477174.36, 4158593.45]), satellites[0][1])
 
@@ -32,6 +34,11 @@ def main() :
 
         startIndex = startIndicies[i]
         count = startIndicies[i+1] - startIndex
+
+        # write satellite data and starting location
+        output_file.write(" -- epoch {} -- satellite data:\n".format(i))
+        printSatelliteData(output_file, satellites, startIndex, count)
+        output_file.write("starting location: <{}, {}, {}>\n".format(x_i[0], x_i[1], x_i[2]))
 
         # Newton's method to find the approx. vehicle position/time
         for k in range (0, max_iterations) :
@@ -46,13 +53,16 @@ def main() :
                 break
             pass
 
+        # write vehcile location in cartesian
+        output_file.write("vehicle location: <{}, {}, {}>\n".format(x_i[0], x_i[1], x_i[2]))
+
         # get t_v
         t_v = (np.linalg.norm(x_i - satellites[startIndex][2]) / c) + satellites[startIndex][1]
 
         # get geodesic coords
         h, lambda_d, lambda_m, lambda_s, phi_d, phi_m, phi_s, NS, EW = cartesianToGeodesic(rotate(x_i, -t_v), 2)
         sys.stdout.write("{:.2f} {} {} {:.3f} {} {} {} {:.2f} {} {:.2f}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
-        output_file.write("{:.2f} {} {} {:.3f} {} {} {} {:.2f} {} {:.2f}\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
+        output_file.write("\n{:.2f} {} {} {:.3f} {} {} {} {:.2f} {} {:.2f}\n\n".format(t_v, phi_d, phi_m, phi_s, NS, lambda_d, lambda_m, lambda_s, EW, h))
         pass
 
     output_file.close()
@@ -123,6 +133,23 @@ def readSatelliteData() :
 
     startIndices.append(len(satellites))
     return satellites, startIndices
+
+# print the data that was gathered to output file
+def printData(output_file, pi, s, c, r) :
+    output_file.write(" data.dat:\n\n")
+    output_file.write("pi = {}\n".format(pi))
+    output_file.write("c = {}\n".format(c))
+    output_file.write("R = {}\n".format(r))
+    output_file.write("s = {}\n".format(s))
+    output_file.write("\n end data.dat:\n\n\n")
+    pass
+
+# print the satellite data into output_file
+def printSatelliteData(output_file, satellites, startIndex, count) :
+    for i in range(0, count) :
+        sat = satellites[startIndex + i]
+        output_file.write("{} {} {} {} {}\n".format(sat[0], sat[1], sat[2][0], sat[2][1], sat[2][2]))
+    pass
 
 # grabs F(x) and the inverse Jacobian(x)
 def calcF_Jinv(x, satellites, startIndex, count) :
